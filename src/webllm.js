@@ -104,7 +104,7 @@ export class LLMEngine {
       const completion = await this.engine.chat.completions.create({
         messages,
         stream: true,
-        temperature: 0.5,
+        temperature: 0.3,
         top_p: 0.9,
         max_tokens: 1024,
       });
