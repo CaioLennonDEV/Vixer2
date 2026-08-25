@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vixer AI - LLM 100% Local no Navegador (WebGPU)</title>
+  <meta name="description" content="Rode modelos de Inteligência Artificial avançados (Llama 3.2, Qwen 2.5, SmolLM2) diretamente no seu PC ou celular via WebGPU. Sem servidor, sem custos e 100% privado.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Highlight.js dark theme -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+  
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <div id="app" class="app-layout">
+    <!-- WebGPU Unsupported Modal -->
+    <div id="webgpu-warning" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="warning-icon">⚠️</span>
+          <h2>WebGPU Não Detectado</h2>
+        </div>
+        <div class="modal-body">
+          <p>O seu navegador ou dispositivo atual não possui suporte nativo ao <strong>WebGPU</strong> ou ele não está ativado.</p>
+          <div class="tip-box">
+            <p><strong>Como resolver:</strong></p>
+            <ul>
+              <li>Use o <strong>Google Chrome</strong>, <strong>Microsoft Edge</strong> ou <strong>Brave</strong> atualizados.</li>
+              <li>No Chrome/Edge, você pode ativar a flag em: <code>chrome://flags/#enable-unsafe-webgpu</code></li>
+              <li>Em dispositivos iOS, certifique-se de estar no iOS 18.2+ ou ative a flag WebGPU nas Configurações do Safari.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="close-warning-btn" class="btn btn-secondary">Entendi, Continuar Mesmo Assim</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar / Navigation Drawer -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          </div>
+          <div class="brand-text">
+            <h1>Vixer AI</h1>
+            <span class="badge badge-tech">WebGPU Local</span>
+          </div>
+        </div>
+        <button id="close-sidebar-btn" class="icon-btn mobile-only" aria-label="Fechar menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <button id="new-chat-btn" class="btn btn-primary btn-block">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Novo Chat
+      </button>
+
+      <!-- Model Selection Section -->
+      <div class="sidebar-section">
+        <label for="model-select" class="section-label">
+          <span>Modelo de IA</span>
+          <span class="info-tooltip" title="Os modelos são baixados uma única vez para o navegador e ficam salvos no cache (IndexedDB).">ℹ️</span>
+        </label>
+        <select id="model-select" class="select-input">
+          <optgroup label="⚡ Recomendados para Celular & PC (Compatibilidade Universal WebGPU)">
+            <option value="Qwen2.5-0.5B-Instruct-q4f32_1-MLC" selected>Qwen 2.5 0.5B (~350 MB) - Recomendado (Fluente em PT)</option>
+            <option value="SmolLM2-360M-Instruct-q4f32_1-MLC">SmolLM2 360M (~200 MB) - Ultra Rápido</option>
+          </optgroup>
+          <optgroup label="🚀 Equilíbrio Rápido & Inteligente">
+            <option value="Llama-3.2-1B-Instruct-q4f32_1-MLC">Llama 3.2 1B (~700 MB) - Meta AI</option>
+            <option value="Qwen2.5-1.5B-Instruct-q4f32_1-MLC">Qwen 2.5 1.5B (~1.0 GB) - Raciocínio</option>
+          </optgroup>
+          <optgroup label="💎 Alta Qualidade">
+            <option value="Llama-3.2-3B-Instruct-q4f32_1-MLC">Llama 3.2 3B (~1.8 GB) - Muito Inteligente</option>
+            <option value="gemma-2-2b-it-q4f32_1-MLC">Gemma 2 2B (~1.4 GB) - Google AI</option>
+          </optgroup>
+        </select>
+        <div id="model-status-tag" class="model-status-tag status-not-loaded">
+          <span class="status-dot"></span>
+          <span id="model-status-text">Modelo não carregado</span>
+        </div>
+      </div>
+
+      <!-- System Prompt Collapsible -->
+      <div class="sidebar-section">
+        <details class="system-prompt-details">
+          <summary class="section-label">
+            <span>Instrução do Sistema</span>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </summary>
+          <textarea id="system-prompt-input" class="textarea-input" rows="3" placeholder="Ex: Você é um assistente prestativo em português brasileiro que responde de forma concisa.">Você é o Vixer AI, um assistente virtual inteligente e amigável que responde em português brasileiro. Seja conciso, claro e prestativo.</textarea>
+        </details>
+      </div>
+
+      <!-- Chat History -->
+      <div class="sidebar-section history-section">
+        <span class="section-label">Histórico de Conversas</span>
+        <div id="chat-history-list" class="history-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Hardware info card -->
+      <div class="sidebar-footer">
+        <div class="hardware-card">
+          <div class="hardware-header">
+            <span class="hardware-title">Hardware Local</span>
+            <span id="gpu-badge" class="badge badge-success">WebGPU OK</span>
+          </div>
+          <p class="hardware-desc">Inferência executada no seu dispositivo. NENHUM dado é enviado para servidores externos.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Sidebar Backdrop for Mobile -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop hidden"></div>
+
+    <!-- Main Chat Workspace -->
+    <main class="chat-main">
+      <!-- Top Bar -->
+      <header class="chat-header">
+        <div class="header-left">
+          <button id="open-sidebar-btn" class="icon-btn mobile-only" aria-label="Abrir menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="current-model-info">
+            <h2 id="active-model-title">SmolLM2 360M</h2>
+            <span id="header-status-badge" class="badge badge-neutral">Pronto para carregar</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="unload-model-btn" class="icon-btn text-btn hidden" title="Liberar Memória RAM/VRAM">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+            <span>Liberar RAM</span>
+          </button>
+          <button id="clear-chat-btn" class="icon-btn" title="Limpar conversa atual">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Download / Loading Progress Card -->
+      <div id="progress-card" class="progress-card hidden">
+        <div class="progress-info">
+          <div class="progress-text-group">
+            <span class="progress-title">Baixando pesos do modelo...</span>
+            <span id="progress-file" class="progress-subtext">Preparando inicialização</span>
+          </div>
+          <span id="progress-percentage" class="progress-percentage">0%</span>
+        </div>
+        <div class="progress-bar-container">
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+        <p class="progress-note">Isso acontece apenas na 1ª vez. O modelo será salvo no cache do navegador (IndexedDB).</p>
+      </div>
+
+      <!-- Messages Scroll Area -->
+      <div id="messages-container" class="messages-container">
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="welcome-screen">
+          <div class="welcome-icon">⚡</div>
+          <h2>Sua IA Local & Privada</h2>
+          <p>Esta inteligência artificial roda <strong>100% no seu navegador</strong> (PC ou Celular) através do WebGPU. Nada sai da sua máquina.</p>
+
+          <div class="quick-prompts-grid">
+            <button class="quick-prompt-card" data-prompt="Explique como funciona a física quântica para um iniciante.">
+              <span class="prompt-icon">💡</span>
+              <div class="prompt-text">
+                <strong>Explicar Conceito</strong>
+                <span>Física quântica para iniciantes</span>
+              </div>
+            </button>
+            <button class="quick-prompt-card" data-prompt="Crie uma função em JavaScript para ordenar um array de objetos por data.">
+              <span class="prompt-icon">💻</span>
+              <div class="prompt-text">
+                <strong>Código em JS</strong>
+                <span>Ordenar array por data</span>
+              </div>
+            </button>
+            <button class="quick-prompt-card" data-prompt="Escreva um e-mail profissional solicitando um orçamento de desenvolvimento web.">
+              <span class="prompt-icon">✉️</span>
+              <div class="prompt-text">
+                <strong>E-mail Profissional</strong>
+                <span>Solicitação de orçamento</span>
+              </div>
+            </button>
+            <button class="quick-prompt-card" data-prompt="Quais são as melhores práticas para otimizar um site no GitHub Pages?">
+              <span class="prompt-icon">🚀</span>
+              <div class="prompt-text">
+                <strong>Dicas de Web</strong>
+                <span>Otimizar GitHub Pages</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat messages list dynamically appended here -->
+      </div>
+
+      <!-- Input Area -->
+      <div class="chat-input-wrapper">
+        <div class="input-card">
+          <textarea 
+            id="user-input" 
+            placeholder="Escreva sua mensagem aqui... (Shift + Enter para nova linha)" 
+            rows="1"
+          ></textarea>
+          
+          <div class="input-actions">
+            <span id="metrics-badge" class="metrics-badge hidden">0 tok/s</span>
+            <button id="stop-btn" class="btn btn-danger hidden">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg>
+              Parar
+            </button>
+            <button id="send-btn" class="btn btn-primary btn-icon" aria-label="Enviar mensagem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
+        </div>
+        <div class="input-footer">
+          <span>Privado & Local • Executado via WebGPU no seu dispositivo • Compatível com GitHub Pages</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
