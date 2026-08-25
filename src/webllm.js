@@ -26,12 +26,20 @@ export class LLMEngine {
     }
 
     if (this.engine && this.currentModelId === modelId) {
-      return this.engine;
+      try {
+        return this.engine;
+      } catch (e) {
+        this.engine = null;
+      }
     }
 
     if (this.engine) {
-      console.log('Unloading existing model from VRAM...');
-      await this.engine.unload();
+      console.log('Descarregando modelo anterior...');
+      try {
+        await this.engine.unload();
+      } catch (e) {
+        console.warn('Erro ao descarregar:', e);
+      }
       this.engine = null;
     }
 

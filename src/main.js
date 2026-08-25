@@ -519,9 +519,14 @@ async function handleSendMessage() {
     },
     (err) => {
       console.error('Erro de geração:', err);
-      if (err.message && (err.message.includes('disposed') || err.message.includes('Device was lost'))) {
-        isModelReady = false;
-        bubbleElement.innerHTML = `<span style="color: #b45309; font-weight: 600;">⚠️ A memória RAM da sua placa de vídeo foi excedida pelo modelo pesado. O Vixer AI foi reconectado automaticamente ao modelo otimizado **Llama 3.2 1B (~700MB)**. Por favor, envie sua mensagem novamente!</span>`;
+      isModelReady = false;
+      try {
+        llmEngine.engine = null;
+        llmEngine.currentModelId = null;
+      } catch (e) {}
+
+      if (err.message && (err.message.includes('disposed') || err.message.includes('Device was lost') || err.message.includes('DXGI') || err.message.includes('HUNG'))) {
+        bubbleElement.innerHTML = `<span style="color: #b45309; font-weight: 600;">⚠️ A memória GPU do seu computador foi reiniciada pelo Windows. O Vixer AI se reconectou automaticamente ao modelo leve **Qwen 2.5 0.5B (~350MB)**. Por favor, envie sua mensagem novamente!</span>`;
       } else {
         bubbleElement.innerHTML = `<span style="color: var(--danger)">Erro: ${escapeHtml(err.message)}</span>`;
       }
