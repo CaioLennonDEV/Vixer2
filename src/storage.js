@@ -1,12 +1,15 @@
 /**
- * Storage Manager for localStorage persistence
+ * Vixer Storage Manager
  */
 const STORAGE_KEYS = {
-  CHATS: 'vixer_chats_v1',
-  ACTIVE_CHAT_ID: 'vixer_active_chat_id',
-  SYSTEM_PROMPT: 'vixer_system_prompt',
-  SELECTED_MODEL: 'vixer_selected_model',
+  CHATS: 'vixer_chats_v3',
+  ACTIVE_CHAT_ID: 'vixer_active_chat_id_v3',
+  SYSTEM_PROMPT: 'vixer_system_prompt_v3',
+  SELECTED_MODEL: 'vixer_selected_model_v3',
 };
+
+const DEFAULT_VIXER_PROMPT =
+  'Você auxilia em matérias do curso de Sistemas de Informação, programação, banco de dados e estudos em geral. Responda em português brasileiro de forma motivadora, clara, didática e objetiva.';
 
 export class StorageManager {
   static getChats() {
@@ -36,8 +39,7 @@ export class StorageManager {
   }
 
   static getSystemPrompt() {
-    return localStorage.getItem(STORAGE_KEYS.SYSTEM_PROMPT) || 
-      'Você é o Vixer AI, um assistente virtual inteligente e amigável que responde em português brasileiro. Seja conciso, claro e prestativo.';
+    return localStorage.getItem(STORAGE_KEYS.SYSTEM_PROMPT) || DEFAULT_VIXER_PROMPT;
   }
 
   static saveSystemPrompt(prompt) {
@@ -45,14 +47,14 @@ export class StorageManager {
   }
 
   static getSelectedModel() {
-    return localStorage.getItem(STORAGE_KEYS.SELECTED_MODEL) || 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
+    return localStorage.getItem(STORAGE_KEYS.SELECTED_MODEL) || 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
   }
 
   static saveSelectedModel(modelId) {
     localStorage.setItem(STORAGE_KEYS.SELECTED_MODEL, modelId);
   }
 
-  static createNewChat(title = 'Nova Conversa') {
+  static createNewChat(title = 'Novo Chat') {
     const chats = this.getChats();
     const newChat = {
       id: 'chat_' + Date.now(),
@@ -75,11 +77,10 @@ export class StorageManager {
 
     if (chatIndex !== -1) {
       chats[chatIndex].messages = messages;
-      // Auto update title from first user message if title is default
-      if (chats[chatIndex].title === 'Nova Conversa' && messages.length > 0) {
+      if (chats[chatIndex].title === 'Novo Chat' && messages.length > 0) {
         const firstUserMsg = messages.find(m => m.role === 'user');
         if (firstUserMsg) {
-          chats[chatIndex].title = firstUserMsg.content.slice(0, 28) + (firstUserMsg.content.length > 28 ? '...' : '');
+          chats[chatIndex].title = firstUserMsg.content.slice(0, 26) + (firstUserMsg.content.length > 26 ? '...' : '');
         }
       }
       this.saveChats(chats);

@@ -50,16 +50,28 @@ export class LLMEngine {
       });
       return this.engine;
     } catch (err) {
-      if (err.message && err.message.includes('shader-f16') && modelId.includes('q4f16_1')) {
-        const fallbackModelId = modelId.replace('q4f16_1', 'q4f32_1');
-        console.warn(`WebGPU shader-f16 não suportado. Tentando fallback automático para modelo de compatibilidade f32: ${fallbackModelId}`);
+      if (err.message && (err.message.includes('Device was lost') || err.message.includes('disposed') || err.message.includes('memory') || err.message.includes('DXGI') || err.message.includes('HUNG'))) {
+        const fallbackModelId = 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
+        console.warn(`WebGPU DirectX TDR / VRAM excedida. Carregando modelo ultra leve universal ${fallbackModelId} (~350MB)...`);
+        this.engine = null;
         this.currentModelId = fallbackModelId;
         this.engine = await webLLM.CreateMLCEngine(fallbackModelId, {
           appConfig,
           initProgressCallback: (report) => {
-            if (onProgress) {
-              onProgress(report);
-            }
+            if (onProgress) onProgress(report);
+          },
+        });
+        return this.engine;
+      }
+
+      if (err.message && err.message.includes('shader-f16') && modelId.includes('q4f16_1')) {
+        const fallbackModelId = modelId.replace('q4f16_1', 'q4f32_1');
+        console.warn(`WebGPU shader-f16 não suportado. Tentando fallback para ${fallbackModelId}`);
+        this.currentModelId = fallbackModelId;
+        this.engine = await webLLM.CreateMLCEngine(fallbackModelId, {
+          appConfig,
+          initProgressCallback: (report) => {
+            if (onProgress) onProgress(report);
           },
         });
         return this.engine;
@@ -84,9 +96,8 @@ export class LLMEngine {
       const completion = await this.engine.chat.completions.create({
         messages,
         stream: true,
-        temperature: 0.6,
+        temperature: 0.5,
         top_p: 0.9,
-        repetition_penalty: 1.18,
         max_tokens: 1024,
       });
 
@@ -114,6 +125,11 @@ export class LLMEngine {
       }
     } catch (err) {
       this.isGenerating = false;
+      if (err.message && (err.message.includes('disposed') || err.message.includes('Device was lost'))) {
+        console.warn('WebGPU reiniciado devido à memória. Resetando motor de IA...');
+        this.engine = null;
+        this.currentModelId = null;
+      }
       if (onError) {
         onError(err);
       }
