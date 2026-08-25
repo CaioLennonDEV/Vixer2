@@ -479,18 +479,21 @@ async function handleSendMessage() {
   metricsBadge.textContent = 'Gerando...';
 
   const currentUser = DatabaseService.getCurrentUserSession();
-  const userName = currentUser ? currentUser.name : 'Caio Lennon';
+  const userName = currentUser ? currentUser.name : 'Estudante';
   const userCourse = currentUser ? currentUser.course : 'Sistemas de Informação';
   const userType = currentUser ? currentUser.type : 'Presencial';
 
   // Realizar busca RAG nos 21 PDFs Multivix + PDFs do usuário
   const ragContext = RAGEngine.buildRAGContextString(text);
 
+  const userGreetingInstruction = currentUser
+    ? `Você está conversando com o aluno ${userName}, do curso de ${userCourse} (${userType}). Se o aluno perguntar qual é o nome dele ou quem ele é, diga diretamente que ele se chama ${userName}.`
+    : `Você está conversando com um estudante em modo Convidado. Se o estudante perguntar qual é o nome dele ou se você o conhece, diga amigavelmente que ele está acessando como Convidado e convide-o a clicar em "Entrar / Cadastrar" no topo para personalizar o atendimento pelo nome dele!`;
+
   const systemMessageContent = 
     `Você é o Vixer AI, assistente virtual de inteligência artificial da Faculdade Multivix. ` +
-    `Você está conversando com o aluno ${userName}, que estuda o curso de ${userCourse} (${userType}). ` +
-    `Você possui memória de todas as mensagens trocadas nesta conversa. Se o aluno perguntar sobre perguntas ou mensagens anteriores (como "qual foi a primeira pergunta?"), consulte o histórico das mensagens acima nesta conversa. ` +
-    `Se o aluno perguntar qual é o nome dele, diga diretamente que ele se chama ${userName}. ` +
+    `${userGreetingInstruction} ` +
+    `Você possui memória de todas as mensagens trocadas nesta conversa. Se o aluno perguntar sobre mensagens ou perguntas anteriores, consulte o histórico acima nesta conversa. ` +
     `Responda em português brasileiro de forma motivadora, clara e didática.\n` +
     `${ragContext}`;
 
