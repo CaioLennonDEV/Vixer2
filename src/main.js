@@ -1,15 +1,14 @@
 import { marked } from 'marked';
 import hljs from 'highlight.js';
-import { LLMEngine } from './webllm.js';
+import { GroqEngine, GROQ_MODELS } from './groqEngine.js';
 import { StorageManager } from './storage.js';
 import { DatabaseService } from './db.js';
 import { COURSES_DATA, generateCourseSystemPrompt } from './coursesData.js';
 import { RAGEngine } from './ragEngine.js';
 import { parsePDFFile } from './pdfParser.js';
-import { getCuratedAnswer } from './curatedAnswers.js';
 
-// Instantiate LLM Engine
-const llmEngine = new LLMEngine();
+// Instantiate Groq Engine
+const llmEngine = new GroqEngine();
 
 // Configure Marked with Highlight.js
 marked.setOptions({
@@ -36,7 +35,7 @@ marked.use({ renderer });
 
 // State Variables
 let currentMessages = [];
-let isModelReady = false;
+let isModelReady = true; // Groq é sempre pronto — sem download
 
 // DOM Elements
 const webgpuModal = document.getElementById('webgpu-warning');
@@ -103,26 +102,42 @@ const activePdfsContainer = document.getElementById('active-pdfs-container');
 
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-  // Check WebGPU
-  const gpuCheck = await LLMEngine.checkWebGPUSupport();
-  if (!gpuCheck.ok) {
-    webgpuModal.classList.remove('hidden');
-  }
+  // Groq não usa WebGPU — esconder modal de aviso
+  if (webgpuModal) webgpuModal.classList.add('hidden');
 
   // Populate Register Course dropdown
   populateCourseOptions(regType.value);
 
   // Restore User Session & Preferences
   updateUserSessionUI();
+  updateStatusUI('loading', 'Conectando ao Groq...');
 
-  const savedModel = StorageManager.getSelectedModel();
-  if (savedModel && modelSelect.querySelector(`option[value="${savedModel}"]`)) {
-    modelSelect.value = savedModel;
+  // Buscar modelos disponíveis na conta Groq
+  const models = await llmEngine.init();
+
+  if (modelSelect) {
+    modelSelect.innerHTML = '';
+    if (models.length === 0) {
+      const opt = document.createElement('option');
+      opt.textContent = 'Nenhum modelo disponível';
+      modelSelect.appendChild(opt);
+      updateStatusUI('error', 'Erro de conexão');
+    } else {
+      models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.label;
+        if (m.id === llmEngine.currentModelId) opt.selected = true;
+        modelSelect.appendChild(opt);
+      });
+      updateStatusUI('ready', `Groq AI Ativo · ${models[0].label}`);
+    }
   }
 
   initChatSession();
   setupEventListeners();
 });
+
 
 function populateCourseOptions(type) {
   regCourse.innerHTML = '';
@@ -381,20 +396,13 @@ function setupEventListeners() {
     closeSidebar();
   });
 
-  modelSelect.addEventListener('change', async () => {
+  modelSelect.addEventListener('change', () => {
     const selectedModel = modelSelect.value;
+    llmEngine.setModel(selectedModel);
     StorageManager.saveSelectedModel(selectedModel);
-    if (isModelReady) {
-      await loadSelectedModel();
-    }
   });
 
-  unloadModelBtn.addEventListener('click', async () => {
-    await llmEngine.unload();
-    isModelReady = false;
-    updateStatusUI('not-loaded', 'Modelo não carregado');
-    unloadModelBtn.classList.add('hidden');
-  });
+  if (unloadModelBtn) unloadModelBtn.classList.add('hidden');
 
   const clearCacheBtn = document.getElementById('clear-cache-btn');
   if (clearCacheBtn) {
@@ -429,8 +437,8 @@ function setupEventListeners() {
   });
 
   sendBtn.addEventListener('click', handleSendMessage);
-  stopBtn.addEventListener('click', async () => {
-    await llmEngine.stopGeneration();
+  stopBtn.addEventListener('click', () => {
+    llmEngine.stopGeneration();
     stopBtn.classList.add('hidden');
     sendBtn.classList.remove('hidden');
   });
@@ -475,36 +483,9 @@ function handleLogout() {
   updateUserSessionUI();
 }
 
+// Groq não precisa de loadSelectedModel — API sempre pronta
 async function loadSelectedModel() {
-  const modelId = modelSelect.value;
-  updateStatusUI('loading', 'Carregando...');
-  progressCard.classList.remove('hidden');
-
-  try {
-    await llmEngine.loadModel(modelId, (report) => {
-      const progress = Math.round(report.progress * 100);
-      progressBarFill.style.width = `${progress}%`;
-      progressPercentage.textContent = `${progress}%`;
-      progressFile.textContent = report.text.replace(/\[\d+\/\d+\]\s*/, '');
-    });
-
-    if (llmEngine.currentModelId && llmEngine.currentModelId !== modelId) {
-      if (modelSelect) modelSelect.value = llmEngine.currentModelId;
-      StorageManager.saveSelectedModel(llmEngine.currentModelId);
-    }
-
-    isModelReady = true;
-    progressCard.classList.add('hidden');
-    updateStatusUI('ready', 'Vixer AI Ativo');
-    unloadModelBtn.classList.remove('hidden');
-    return true;
-  } catch (error) {
-    console.error('Erro ao carregar Vixer AI:', error);
-    progressCard.classList.add('hidden');
-    updateStatusUI('not-loaded', 'Erro ao carregar');
-    alert(error.message || ('Erro ao carregar modelo: ' + error));
-    return false;
-  }
+  return true;
 }
 
 async function handleSendMessage() {
@@ -544,26 +525,6 @@ async function handleSendMessage() {
   const userCourse = currentUser ? currentUser.course : 'Sistemas de Informação';
   const userType = currentUser ? currentUser.type : 'Presencial';
 
-  // ✅ Verificar se existe resposta curada para esta pergunta (bypass do LLM)
-  // Passa o conteúdo da última resposta do assistente para detecção de contexto (ex.: "resumir")
-  const lastAssistantMsg = [...currentMessages].reverse().find(m => m.role === 'assistant');
-  const lastAssistantContent = lastAssistantMsg ? lastAssistantMsg.content : null;
-  const curatedAnswer = getCuratedAnswer(text, lastAssistantContent);
-  if (curatedAnswer) {
-    const finalText = curatedAnswer;
-    bubbleElement.innerHTML = marked.parse(finalText);
-    metaElement.textContent = `Fonte: Documentos Oficiais Multivix (resposta verificada)`;
-    currentMessages.push({ role: 'assistant', content: finalText });
-    StorageManager.updateActiveChatMessages(currentMessages);
-    renderHistoryList();
-    sendBtn.classList.remove('hidden');
-    stopBtn.classList.add('hidden');
-    metricsBadge.classList.add('hidden');
-    scrollToBottom();
-    return;
-  }
-
-
   // Realizar busca RAG nos 21 PDFs Multivix + PDFs do usuário
   const ragContext = RAGEngine.buildRAGContextString(text);
 
@@ -572,17 +533,20 @@ async function handleSendMessage() {
     : `Você está conversando com um estudante em modo Convidado. Se o estudante perguntar qual é o nome dele ou se você o conhece, diga amigavelmente que ele está acessando como Convidado e convide-o a clicar em "Entrar / Cadastrar" no topo para personalizar o atendimento pelo nome dele!`;
 
   const systemMessageContent = 
-    `Você é o Vixer AI, assistente virtual de inteligência artificial da Faculdade Multivix. ` +
+    `Você é o Vixer AI, assistente virtual da Faculdade Multivix. ` +
     `${userGreetingInstruction} ` +
-    `Você possui memória de todas as mensagens trocadas nesta conversa. Se o aluno perguntar sobre mensagens ou perguntas anteriores, consulte o histórico acima nesta conversa. ` +
-    `Responda em português brasileiro de forma motivadora, clara, didática e oficial.`;
+    `Responda em português brasileiro de forma natural e conversacional — como um atendente humano inteligente, não como um documento. ` +
+    `Adapte o tamanho e o tom da resposta ao que o aluno pediu: se ele pedir algo curto, responda curto; se pedir detalhes, explique com calma. ` +
+    `Quando houver documentos de referência abaixo, use as informações deles como base, mas escreva com suas próprias palavras, de forma fluida. ` +
+    `NUNCA invente informações que não estejam nos documentos ou no histórico da conversa. ` +
+    `Você possui memória de todas as mensagens trocadas nesta conversa.`;
 
   // Anexar o Contexto RAG diretamente à última pergunta do usuário para máxima atenção do modelo
   const threadMessages = currentMessages.map((m, idx) => {
     if (idx === currentMessages.length - 1 && m.role === 'user' && ragContext) {
       return {
         role: 'user',
-        content: `${ragContext}\n\nPERGUNTA DO ALUNO ${userName.toUpperCase()}:\n"${m.content}"`
+        content: `${ragContext}\n\nPergunta: ${m.content}`
       };
     }
     return m;
@@ -606,27 +570,15 @@ async function handleSendMessage() {
       StorageManager.updateActiveChatMessages(currentMessages);
       renderHistoryList();
 
-      metaElement.textContent = `Respondido em ${stats.totalElapsed}s (${stats.finalTokensPerSec} tok/s)`;
+      const modelLabel = GROQ_MODELS.find(m => m.id === stats.modelUsed)?.label || stats.modelUsed;
+      metaElement.textContent = `${stats.totalElapsed}s · ${stats.finalTokensPerSec} tok/s · ${modelLabel}`;
       sendBtn.classList.remove('hidden');
       stopBtn.classList.add('hidden');
       metricsBadge.classList.add('hidden');
     },
     (err) => {
-      console.error('Erro de geração:', err);
-      isModelReady = false;
-      try {
-        llmEngine.engine = null;
-        llmEngine.currentModelId = null;
-      } catch (e) {}
-
-      if (err.message && (err.message.includes('disposed') || err.message.includes('Device was lost') || err.message.includes('DXGI') || err.message.includes('HUNG'))) {
-        const fallbackModel = 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
-        if (modelSelect) modelSelect.value = fallbackModel;
-        StorageManager.saveSelectedModel(fallbackModel);
-        bubbleElement.innerHTML = `<span style="color: #b45309; font-weight: 600;">⚠️ A memória GPU foi excedida. O Vixer AI alternou automaticamente para o modelo ultra leve **Qwen 2.5 0.5B (~350MB)**, que roda com leveza em qualquer computador. Por favor, reenvie a mensagem!</span>`;
-      } else {
-        bubbleElement.innerHTML = `<span style="color: var(--danger)">Erro: ${escapeHtml(err.message)}</span>`;
-      }
+      console.error('Erro Groq:', err);
+      bubbleElement.innerHTML = `<span style="color: var(--danger)">⚠️ ${escapeHtml(err.message || 'Erro ao conectar ao Groq. Verifique sua internet.')}</span>`;
       sendBtn.classList.remove('hidden');
       stopBtn.classList.add('hidden');
       metricsBadge.classList.add('hidden');
@@ -637,16 +589,15 @@ async function handleSendMessage() {
 function updateStatusUI(statusClass, text) {
   if (modelStatusTag) modelStatusTag.className = `model-status-tag status-${statusClass}`;
   if (modelStatusText) modelStatusText.textContent = text;
-  
-  if (statusClass === 'ready') {
-    headerStatusBadge.className = 'badge badge-success';
-    headerStatusBadge.textContent = 'Ativo';
-  } else if (statusClass === 'loading') {
-    headerStatusBadge.className = 'badge badge-neutral';
-    headerStatusBadge.textContent = 'Carregando...';
-  } else {
-    headerStatusBadge.className = 'badge badge-neutral';
-    headerStatusBadge.textContent = 'Pronto';
+
+  if (headerStatusBadge) {
+    if (statusClass === 'ready') {
+      headerStatusBadge.className = 'badge badge-success';
+      headerStatusBadge.textContent = 'Ativo';
+    } else {
+      headerStatusBadge.className = 'badge badge-neutral';
+      headerStatusBadge.textContent = 'Aguardando';
+    }
   }
 }
 
