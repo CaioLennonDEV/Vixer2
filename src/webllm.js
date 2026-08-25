@@ -11,10 +11,21 @@ export class LLMEngine {
   }
 
   /**
-   * Check if WebGPU is available in the current browser context
+   * Check if WebGPU is available and active in the browser context
    */
-  static checkWebGPUSupport() {
-    return 'gpu' in navigator;
+  static async checkWebGPUSupport() {
+    if (!('gpu' in navigator)) {
+      return { ok: false, reason: 'O navegador não possui suporte ao recurso WebGPU.' };
+    }
+    try {
+      const adapter = await navigator.gpu.requestAdapter();
+      if (!adapter) {
+        return { ok: false, reason: 'O processo da placa de vídeo (GPU) do navegador foi suspenso pelo Windows/Chrome após uma falha de memória.' };
+      }
+      return { ok: true, adapter };
+    } catch (e) {
+      return { ok: false, reason: e.message };
+    }
   }
 
   /**
@@ -23,6 +34,11 @@ export class LLMEngine {
   async loadModel(modelId, onProgress) {
     if (typeof caches === 'undefined' || !window.isSecureContext) {
       throw new Error('O navegador bloqueou o recurso de Cache/WebGPU por estar rodando em HTTP não seguro. No celular, o WebGPU exige HTTPS (ex: https://IP ou via GitHub Pages).');
+    }
+
+    const gpuCheck = await LLMEngine.checkWebGPUSupport();
+    if (!gpuCheck.ok) {
+      throw new Error(`WebGPU Suspenso no Navegador!\n\n${gpuCheck.reason}\n\n👉 COMO REATIVAR A GPU AHORA:\n1. Digite "chrome://restart" na barra de endereços do seu navegador e pressione Enter (ou feche TODAS as janelas do Chrome).\n2. Ao reabrir, a placa de vídeo estará 100% reativada.`);
     }
 
     if (this.engine && this.currentModelId === modelId) {
@@ -58,24 +74,21 @@ export class LLMEngine {
       });
       return this.engine;
     } catch (err) {
-      if (err.message && (err.message.includes('Device was lost') || err.message.includes('disposed') || err.message.includes('memory') || err.message.includes('DXGI') || err.message.includes('HUNG'))) {
-        const fallbackModelId = 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
-        console.warn(`WebGPU DirectX TDR / VRAM excedida. Carregando modelo ultra leve universal ${fallbackModelId} (~350MB)...`);
-        this.engine = null;
-        this.currentModelId = fallbackModelId;
-        this.engine = await webLLM.CreateMLCEngine(fallbackModelId, {
-          appConfig,
-          initProgressCallback: (report) => {
-            if (onProgress) onProgress(report);
-          },
-        });
-        return this.engine;
+      console.error(`Erro ao carregar modelo ${modelId}:`, err);
+
+      if (err.message && (err.message.includes('Unable to find a compatible GPU') || err.message.includes('requestAdapter') || err.message.includes('Failed to request WebGPU'))) {
+        throw new Error('A aceleração WebGPU foi suspensa pelo Chrome/Windows por instabilidade da GPU. Feche todas as janelas do navegador (ou digite chrome://restart) para reativar a GPU!');
       }
 
-      if (err.message && err.message.includes('shader-f16') && modelId.includes('q4f16_1')) {
-        const fallbackModelId = modelId.replace('q4f16_1', 'q4f32_1');
-        console.warn(`WebGPU shader-f16 não suportado. Tentando fallback para ${fallbackModelId}`);
-        this.currentModelId = fallbackModelId;
+      if (modelId === 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC') {
+        throw err;
+      }
+
+      const fallbackModelId = 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
+      console.warn(`Tentando fallback automático para modelo leve ${fallbackModelId} (~350MB)...`);
+      this.engine = null;
+      this.currentModelId = fallbackModelId;
+      try {
         this.engine = await webLLM.CreateMLCEngine(fallbackModelId, {
           appConfig,
           initProgressCallback: (report) => {
@@ -83,8 +96,9 @@ export class LLMEngine {
           },
         });
         return this.engine;
+      } catch (fallbackErr) {
+        throw fallbackErr;
       }
-      throw err;
     }
   }
 
@@ -104,8 +118,8 @@ export class LLMEngine {
       const completion = await this.engine.chat.completions.create({
         messages,
         stream: true,
-        temperature: 0.3,
-        top_p: 0.9,
+        temperature: 0.1,
+        top_p: 0.85,
         max_tokens: 1024,
       });
 

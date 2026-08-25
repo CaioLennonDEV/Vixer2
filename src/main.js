@@ -103,8 +103,8 @@ const activePdfsContainer = document.getElementById('active-pdfs-container');
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
   // Check WebGPU
-  const hasWebGPU = LLMEngine.checkWebGPUSupport();
-  if (!hasWebGPU) {
+  const gpuCheck = await LLMEngine.checkWebGPUSupport();
+  if (!gpuCheck.ok) {
     webgpuModal.classList.remove('hidden');
   }
 
@@ -237,12 +237,47 @@ function appendMessageUI(role, content, animate = true) {
   const avatar = role === 'assistant' ? `<div class="message-avatar">⚡</div>` : '';
   const parsedContent = role === 'assistant' ? marked.parse(content) : escapeHtml(content);
 
+  const footerHTML = role === 'assistant' ? `
+    <div class="message-footer-bar">
+      <div class="message-meta"></div>
+      <button class="copy-msg-btn" title="Copiar resposta da IA">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <span>Copiar</span>
+      </button>
+    </div>
+  ` : '';
+
   row.innerHTML = `
     ${avatar}
     <div class="message-content">
       <div class="message-bubble">${parsedContent}</div>
+      ${footerHTML}
     </div>
   `;
+
+  if (role === 'assistant') {
+    const copyBtn = row.querySelector('.copy-msg-btn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        const bubble = row.querySelector('.message-bubble');
+        const textToCopy = bubble ? bubble.innerText : content;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          copyBtn.classList.add('copied');
+          copyBtn.innerHTML = `
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Copiado!</span>
+          `;
+          setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = `
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copiar</span>
+            `;
+          }, 2000);
+        });
+      });
+    }
+  }
 
   messagesContainer.appendChild(row);
   if (animate) scrollToBottom();
@@ -360,6 +395,25 @@ function setupEventListeners() {
     unloadModelBtn.classList.add('hidden');
   });
 
+  const clearCacheBtn = document.getElementById('clear-cache-btn');
+  if (clearCacheBtn) {
+    clearCacheBtn.addEventListener('click', async () => {
+      if (confirm('Deseja limpar todo o cache de modelos do navegador? Isso limpará dados corrompidos de GPU e baixará o modelo novamente.')) {
+        try {
+          const keys = await caches.keys();
+          for (const key of keys) {
+            await caches.delete(key);
+          }
+          localStorage.removeItem('vixer_selected_model_v3');
+          alert('Cache de modelos limpo com sucesso! A página será recarregada.');
+          window.location.reload();
+        } catch (e) {
+          alert('Erro ao limpar cache: ' + e.message);
+        }
+      }
+    });
+  }
+
   // Input Auto-expansion
   userInput.addEventListener('input', () => {
     userInput.style.height = 'auto';
@@ -433,6 +487,11 @@ async function loadSelectedModel() {
       progressFile.textContent = report.text.replace(/\[\d+\/\d+\]\s*/, '');
     });
 
+    if (llmEngine.currentModelId && llmEngine.currentModelId !== modelId) {
+      if (modelSelect) modelSelect.value = llmEngine.currentModelId;
+      StorageManager.saveSelectedModel(llmEngine.currentModelId);
+    }
+
     isModelReady = true;
     progressCard.classList.add('hidden');
     updateStatusUI('ready', 'Vixer AI Ativo');
@@ -442,7 +501,7 @@ async function loadSelectedModel() {
     console.error('Erro ao carregar Vixer AI:', error);
     progressCard.classList.add('hidden');
     updateStatusUI('not-loaded', 'Erro ao carregar');
-    alert('Erro ao carregar modelo: ' + error.message);
+    alert(error.message || ('Erro ao carregar modelo: ' + error));
     return false;
   }
 }
@@ -467,11 +526,12 @@ async function handleSendMessage() {
 
   const assistantRow = appendMessageUI('assistant', '...', true);
   const bubbleElement = assistantRow.querySelector('.message-bubble');
-  const contentElement = assistantRow.querySelector('.message-content');
-
-  const metaElement = document.createElement('div');
-  metaElement.className = 'message-meta';
-  contentElement.appendChild(metaElement);
+  let metaElement = assistantRow.querySelector('.message-meta');
+  if (!metaElement) {
+    metaElement = document.createElement('div');
+    metaElement.className = 'message-meta';
+    assistantRow.querySelector('.message-content').appendChild(metaElement);
+  }
 
   sendBtn.classList.add('hidden');
   stopBtn.classList.remove('hidden');
@@ -529,7 +589,10 @@ async function handleSendMessage() {
       } catch (e) {}
 
       if (err.message && (err.message.includes('disposed') || err.message.includes('Device was lost') || err.message.includes('DXGI') || err.message.includes('HUNG'))) {
-        bubbleElement.innerHTML = `<span style="color: #b45309; font-weight: 600;">⚠️ A memória GPU do seu computador foi reiniciada pelo Windows. O Vixer AI se reconectou automaticamente ao modelo leve **Qwen 2.5 0.5B (~350MB)**. Por favor, envie sua mensagem novamente!</span>`;
+        const fallbackModel = 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
+        if (modelSelect) modelSelect.value = fallbackModel;
+        StorageManager.saveSelectedModel(fallbackModel);
+        bubbleElement.innerHTML = `<span style="color: #b45309; font-weight: 600;">⚠️ A memória GPU foi excedida. O Vixer AI alternou automaticamente para o modelo ultra leve **Qwen 2.5 0.5B (~350MB)**, que roda com leveza em qualquer computador. Por favor, reenvie a mensagem!</span>`;
       } else {
         bubbleElement.innerHTML = `<span style="color: var(--danger)">Erro: ${escapeHtml(err.message)}</span>`;
       }

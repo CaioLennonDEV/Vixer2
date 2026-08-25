@@ -47,7 +47,7 @@ export class StorageManager {
   }
 
   static getSelectedModel() {
-    return localStorage.getItem(STORAGE_KEYS.SELECTED_MODEL) || 'Llama-3.2-3B-Instruct-q4f32_1-MLC';
+    return localStorage.getItem(STORAGE_KEYS.SELECTED_MODEL) || 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
   }
 
   static saveSelectedModel(modelId) {

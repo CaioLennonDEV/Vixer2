@@ -132,14 +132,17 @@
       <div class="sidebar-section">
         <span class="section-label">Modelo de IA (WebGPU)</span>
         <select id="model-select" class="select-input model-select-dropdown" style="margin-top: 0.35rem; cursor: pointer; background-color: #ffffff;">
-          <option value="Llama-3.2-3B-Instruct-q4f32_1-MLC" selected>🚀 Llama 3.2 3B (Recomendado - 1.8GB)</option>
+          <option value="Qwen2.5-0.5B-Instruct-q4f32_1-MLC" selected>🪶 Qwen 2.5 0.5B (Ultra Leve/Estável - 350MB)</option>
           <option value="Llama-3.2-1B-Instruct-q4f32_1-MLC">⚡ Llama 3.2 1B (Rápido - 800MB)</option>
+          <option value="Llama-3.2-3B-Instruct-q4f32_1-MLC">🚀 Llama 3.2 3B (Alta Performance - 1.8GB)</option>
           <option value="Qwen2.5-1.5B-Instruct-q4f32_1-MLC">🧠 Qwen 2.5 1.5B (Equilibrado - 1.1GB)</option>
-          <option value="Qwen2.5-7B-Instruct-q4f32_1-MLC">🔥 Qwen 2.5 7B (Alta Performance - 4.3GB)</option>
+          <option value="Qwen2.5-7B-Instruct-q4f32_1-MLC">🔥 Qwen 2.5 7B (Performance - 4.3GB)</option>
           <option value="DeepSeek-R1-Distill-Qwen-7B-q4f32_1-MLC">🔬 DeepSeek R1 7B (Raciocínio - 4.3GB)</option>
           <option value="Llama-3.1-8B-Instruct-q4f32_1-MLC">👑 Llama 3.1 8B (Máxima Precisão - 4.3GB)</option>
-          <option value="Qwen2.5-0.5B-Instruct-q4f32_1-MLC">🪶 Qwen 2.5 0.5B (Ultra Leve - 350MB)</option>
         </select>
+        <button id="clear-cache-btn" class="btn btn-sm btn-ghost" style="margin-top: 0.4rem; width: 100%; font-size: 0.76rem; color: #6b7280; border: 1px dashed #d1d5db;">
+          🧹 Limpar Cache de Modelos (Reset)
+        </button>
         <textarea id="system-prompt-input" style="display: none;"></textarea>
       </div>
 

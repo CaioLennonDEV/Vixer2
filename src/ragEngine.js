@@ -116,11 +116,11 @@ export class RAGEngine {
     });
 
     contextStr += `---
-INSTRUÇÕES DE RESPOSTA BASEADA NOS DOCUMENTOS:
-1. Responda à dúvida do aluno de forma clara, elegante, estruturada e amigável em português.
-2. Extraia os dados exatos (porcentagens como 75% de frequência, prazos, artigos e regras) dos trechos dos documentos oficiais fornecidos acima.
-3. Comece sua resposta indicando o documento consultado em negrito, por exemplo: "📌 **Fonte Oficial:** [Nome do Documento]".
-4. Utilize marcadores bem espaçados para tornar a leitura bonita e agradável.
+INSTRUÇÕES DE RESPOSTA (RESPEITE RIGOROSAMENTE):
+1. Responda à dúvida do aluno de forma amigável, clara e didática em português brasileiro.
+2. Baseie sua resposta EXCLUSIVAMENTE nas informações oficiais do trecho citado acima.
+3. Não invente termos estranhos, siglas nem regras que não constem no documento fornecido.
+4. Organize sua resposta em tópicos objetivos.
 `;
     return contextStr;
   }
