@@ -103,12 +103,12 @@ export class RAGEngine {
   static buildRAGContextString(userQuery) {
     if (this.isMetaOrHistoryQuery(userQuery)) return '';
 
-    const passages = this.searchRelevantPassages(userQuery, 2);
+    const passages = this.searchRelevantPassages(userQuery, 3);
     if (passages.length === 0) return '';
 
     let contextStr = `\nDOCUMENTOS DE REFERÊNCIA OFICIAIS DA MULTIVIX:\n`;
     passages.forEach((p) => {
-      const snippet = p.text.length > 350 ? p.text.substring(0, 350) + '...' : p.text;
+      const snippet = p.text.length > 1200 ? p.text.substring(0, 1200) + '...' : p.text;
       contextStr += `---
 [DOCUMENTO OFICIAL CONSULTADO: "${p.documentTitle}"]
 "${snippet}"
@@ -116,11 +116,11 @@ export class RAGEngine {
     });
 
     contextStr += `---
-INSTRUÇÕES DE RESPOSTA (RESPEITE RIGOROSAMENTE):
-1. Responda à dúvida do aluno de forma amigável, clara e didática em português brasileiro.
-2. Baseie sua resposta EXCLUSIVAMENTE nas informações oficiais do trecho citado acima.
-3. Não invente termos estranhos, siglas nem regras que não constem no documento fornecido.
-4. Organize sua resposta em tópicos objetivos.
+INSTRUÇÕES DE RESPOSTA BASEADA NOS DOCUMENTOS OFICIAIS:
+1. Responda à dúvida do aluno de forma clara, amigável e oficial em português brasileiro.
+2. Baseie sua resposta EXCLUSIVAMENTE nas informações oficiais dos trechos citados acima (como Rematrícula Automática, mensalidades quitadas, ausência de débitos na biblioteca e aceite do contrato educacional no Portal/App Multivix).
+3. NUNCA invente botões que não constam no documento (como "Procurar Inscrições"), nem provas fictícias (como "prova de desempenho", "prova de matrícula" ou "prova de aprovação"), nem sites falsos (como "cursodev.com").
+4. Organize a resposta em tópicos numerados objetivos e diretos.
 `;
     return contextStr;
   }

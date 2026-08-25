@@ -6,6 +6,7 @@ import { DatabaseService } from './db.js';
 import { COURSES_DATA, generateCourseSystemPrompt } from './coursesData.js';
 import { RAGEngine } from './ragEngine.js';
 import { parsePDFFile } from './pdfParser.js';
+import { getCuratedAnswer } from './curatedAnswers.js';
 
 // Instantiate LLM Engine
 const llmEngine = new LLMEngine();
@@ -234,7 +235,7 @@ function appendMessageUI(role, content, animate = true) {
   const row = document.createElement('div');
   row.className = `message-row ${role}`;
 
-  const avatar = role === 'assistant' ? `<div class="message-avatar">⚡</div>` : '';
+  const avatar = role === 'assistant' ? `<div class="message-avatar">V</div>` : '';
   const parsedContent = role === 'assistant' ? marked.parse(content) : escapeHtml(content);
 
   const footerHTML = role === 'assistant' ? `
@@ -543,6 +544,26 @@ async function handleSendMessage() {
   const userCourse = currentUser ? currentUser.course : 'Sistemas de Informação';
   const userType = currentUser ? currentUser.type : 'Presencial';
 
+  // ✅ Verificar se existe resposta curada para esta pergunta (bypass do LLM)
+  // Passa o conteúdo da última resposta do assistente para detecção de contexto (ex.: "resumir")
+  const lastAssistantMsg = [...currentMessages].reverse().find(m => m.role === 'assistant');
+  const lastAssistantContent = lastAssistantMsg ? lastAssistantMsg.content : null;
+  const curatedAnswer = getCuratedAnswer(text, lastAssistantContent);
+  if (curatedAnswer) {
+    const finalText = curatedAnswer;
+    bubbleElement.innerHTML = marked.parse(finalText);
+    metaElement.textContent = `Fonte: Documentos Oficiais Multivix (resposta verificada)`;
+    currentMessages.push({ role: 'assistant', content: finalText });
+    StorageManager.updateActiveChatMessages(currentMessages);
+    renderHistoryList();
+    sendBtn.classList.remove('hidden');
+    stopBtn.classList.add('hidden');
+    metricsBadge.classList.add('hidden');
+    scrollToBottom();
+    return;
+  }
+
+
   // Realizar busca RAG nos 21 PDFs Multivix + PDFs do usuário
   const ragContext = RAGEngine.buildRAGContextString(text);
 
@@ -554,12 +575,22 @@ async function handleSendMessage() {
     `Você é o Vixer AI, assistente virtual de inteligência artificial da Faculdade Multivix. ` +
     `${userGreetingInstruction} ` +
     `Você possui memória de todas as mensagens trocadas nesta conversa. Se o aluno perguntar sobre mensagens ou perguntas anteriores, consulte o histórico acima nesta conversa. ` +
-    `Responda em português brasileiro de forma motivadora, clara e didática.\n` +
-    `${ragContext}`;
+    `Responda em português brasileiro de forma motivadora, clara, didática e oficial.`;
+
+  // Anexar o Contexto RAG diretamente à última pergunta do usuário para máxima atenção do modelo
+  const threadMessages = currentMessages.map((m, idx) => {
+    if (idx === currentMessages.length - 1 && m.role === 'user' && ragContext) {
+      return {
+        role: 'user',
+        content: `${ragContext}\n\nPERGUNTA DO ALUNO ${userName.toUpperCase()}:\n"${m.content}"`
+      };
+    }
+    return m;
+  });
 
   const fullThread = [
     { role: 'system', content: systemMessageContent },
-    ...currentMessages
+    ...threadMessages
   ];
 
   await llmEngine.generateStream(
