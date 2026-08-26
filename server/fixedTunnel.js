@@ -36,7 +36,27 @@ function startKeepAlive(tunnel) {
   }, KEEPALIVE_INTERVAL);
 }
 
-function setupTunnel(tunnel) {
+async function autoAcceptReminder(tunnelUrl) {
+  try {
+    // Pegar a senha/IP do localtunnel
+    const pwRes = await fetch('https://loca.lt/mytunnelpassword');
+    const password = (await pwRes.text()).trim();
+    console.log(`[VixerTunnel] Tunnel password obtido: ${password}`);
+
+    // Submeter a senha para "aceitar" a reminder page
+    const acceptRes = await fetch(tunnelUrl, {
+      method: 'GET',
+      headers: {
+        'Bypass-Tunnel-Reminder': password
+      }
+    });
+    console.log(`[VixerTunnel] Reminder auto-aceita! Status: ${acceptRes.status}`);
+  } catch (e) {
+    console.warn('[VixerTunnel] Não foi possível auto-aceitar reminder:', e.message);
+  }
+}
+
+async function setupTunnel(tunnel) {
   activeTunnel = tunnel;
   retryCount = 0;
 
@@ -44,6 +64,9 @@ function setupTunnel(tunnel) {
   console.log(`✨ TÚNEL ATIVO:`);
   console.log(`👉  ${tunnel.url}  👈`);
   console.log(`======================================================\n`);
+
+  // Auto-aceitar a reminder page do Localtunnel
+  await autoAcceptReminder(tunnel.url);
 
   startKeepAlive(tunnel);
 
@@ -72,7 +95,12 @@ async function startFixedTunnel() {
   console.log(`[VixerTunnel] Tentativa ${retryCount}/${MAX_RETRIES} — Solicitando: https://${SUBDOMAIN}.loca.lt ...`);
 
   try {
-    const tunnel = await localtunnel({ port: PORT, subdomain: SUBDOMAIN });
+    const tunnel = await localtunnel({ 
+      port: PORT, 
+      subdomain: SUBDOMAIN,
+      local_host: '127.0.0.1',
+      allow_invalid_cert: true
+    });
 
     if (tunnel.url.includes(SUBDOMAIN)) {
       // URL fixa oficial obtida!
