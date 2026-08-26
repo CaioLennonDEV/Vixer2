@@ -1,4 +1,4 @@
-import pdfKnowledge from './pdfKnowledgeBase.json';
+import pdfKnowledge from './pdfKnowledgeBase.json' with { type: 'json' };
 
 /**
  * Engine RAG (Retrieval-Augmented Generation) para Busca em PDFs Multivix

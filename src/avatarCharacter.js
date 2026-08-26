@@ -5,9 +5,9 @@
  * - Transitions to Thinking video (Hand on Chin) when AI responds.
  */
 
-import idleVideo1Url from '../Character_waving_and_blinking_eyes_202608252332.mp4';
-import idleVideo2Url from '../Character_holding_notebook_with_…_202608260005.mp4';
-import thinkingVideoUrl from '../Woman_resting_hand_on_chin_202608252343.mp4';
+const idleVideo1Url = new URL('../Character_waving_and_blinking_eyes_202608252332.mp4', import.meta.url).href;
+const idleVideo2Url = new URL('../Character_holding_notebook_with_…_202608260005.mp4', import.meta.url).href;
+const thinkingVideoUrl = new URL('../Woman_resting_hand_on_chin_202608252343.mp4', import.meta.url).href;
 
 export class AvatarCharacter {
   constructor(options = {}) {
