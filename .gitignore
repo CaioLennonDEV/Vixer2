@@ -1,0 +1,26 @@
+# Security & Environment Variables (MANDATÓRIO MANTER EM SEGREDO)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Node Modules & Dependências
+node_modules/
+
+# Logs e arquivos de execução
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Arquivos de Sistema e IDEs
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
