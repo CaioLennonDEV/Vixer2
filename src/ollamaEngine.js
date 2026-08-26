@@ -20,6 +20,11 @@ function getOllamaEndpoints() {
   return list;
 }
 
+const TUNNEL_BYPASS_HEADERS = {
+  'Bypass-Tunnel-Reminder': 'true',
+  'ngrok-skip-browser-warning': 'true'
+};
+
 export class OllamaEngine {
   constructor() {
     this.isGenerating = false;
@@ -63,7 +68,10 @@ export class OllamaEngine {
     const endpoints = getOllamaEndpoints();
     for (const url of endpoints) {
       try {
-        const res = await fetch(`${url}/api/tags`, { method: 'GET' });
+        const res = await fetch(`${url}/api/tags`, { 
+          method: 'GET',
+          headers: TUNNEL_BYPASS_HEADERS
+        });
         if (res.ok) {
           console.log(`[OllamaEngine] Conectado com sucesso via: ${url}`);
           return url;
@@ -83,7 +91,9 @@ export class OllamaEngine {
   async fetchLocalModels() {
     for (const baseUrl of [this.activeBaseUrl, ...getOllamaEndpoints()]) {
       try {
-        const res = await fetch(`${baseUrl}/api/tags`);
+        const res = await fetch(`${baseUrl}/api/tags`, {
+          headers: TUNNEL_BYPASS_HEADERS
+        });
         if (!res.ok) continue;
         const data = await res.json();
         if (data.models && data.models.length > 0) {
@@ -144,7 +154,10 @@ export class OllamaEngine {
         const isNativeApi = endpoint.includes('/api/chat');
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...TUNNEL_BYPASS_HEADERS 
+          },
           body: JSON.stringify(payload),
           signal: this.abortController.signal,
         });

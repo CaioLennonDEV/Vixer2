@@ -217,7 +217,7 @@ app.all(['/v1/chat/completions', '/api/chat', '/ollama/v1/chat/completions', '/o
     res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning');
 
     if (response.body) {
       for await (const chunk of response.body) {
