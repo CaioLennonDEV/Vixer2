@@ -682,6 +682,8 @@ html, body {
   max-width: 760px;
   width: 100%;
   margin: 0 auto;
+  position: relative;
+  z-index: 1001;
 }
 
 .active-pdfs-container {
@@ -923,7 +925,7 @@ html, body {
   width: 440px;
   height: auto;
   filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.35));
-  pointer-events: auto;
+  pointer-events: none;
   cursor: default;
   user-select: none;
 }
