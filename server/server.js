@@ -183,8 +183,56 @@ app.put('/api/user/prompt', async (req, res) => {
   }
 });
 
+// ==========================================
+// ROTA PROXY PARA OLLAMA LOCAL DO PC (PUBLICAÇÃO)
+// ==========================================
+const OLLAMA_LOCAL_URL = process.env.OLLAMA_LOCAL_URL || 'http://127.0.0.1:11434';
+
+// 1. Listar Modelos do Ollama
+app.get('/api/tags', async (req, res) => {
+  try {
+    const response = await fetch(`${OLLAMA_LOCAL_URL}/api/tags`);
+    if (!response.ok) return res.status(response.status).json({ error: 'Erro ao conectar ao Ollama local' });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Ollama local indisponível no PC host.' });
+  }
+});
+
+// 2. Proxy Streaming Chat Completions (/v1/chat/completions ou /api/chat)
+app.all(['/v1/chat/completions', '/api/chat', '/ollama/v1/chat/completions', '/ollama/api/chat'], async (req, res) => {
+  try {
+    const isNativeApi = req.path.includes('/api/chat');
+    const targetEndpoint = isNativeApi 
+      ? `${OLLAMA_LOCAL_URL}/api/chat` 
+      : `${OLLAMA_LOCAL_URL}/v1/chat/completions`;
+
+    const response = await fetch(targetEndpoint, {
+      method: req.method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body)
+    });
+
+    res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (response.body) {
+      for await (const chunk of response.body) {
+        res.write(chunk);
+      }
+    }
+    res.end();
+  } catch (err) {
+    console.error('[OllamaProxy Error]:', err.message);
+    res.status(500).json({ error: 'Falha na comunicação com o Ollama no PC host.' });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, async () => {
-  console.log(`Servidor Backend rodando na porta ${PORT}`);
+  console.log(`Servidor Backend Vixer + Proxy Ollama rodando na porta ${PORT}`);
   await initDatabase();
 });

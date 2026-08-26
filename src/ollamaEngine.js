@@ -6,8 +6,19 @@
 
 export const DEFAULT_OLLAMA_MODEL = '4skl/gemma4-e2b-mtp:latest';
 
-// Lista de URLs para tentar conectar em ordem de preferência (Proxy Vite primeiro para evitar CORS)
-const OLLAMA_BASE_URLS = ['/ollama', 'http://localhost:11434', 'http://127.0.0.1:11434'];
+// Configuração de URL remota da API (útil quando o frontend está publicado na Vercel/Netlify e conecta ao PC)
+const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || '').replace(/\/$/, '');
+
+function getOllamaEndpoints() {
+  const list = [];
+  if (CONFIGURED_REMOTE_URL) list.push(CONFIGURED_REMOTE_URL);
+  list.push('/ollama');
+  list.push('http://localhost:3001');
+  list.push('http://127.0.0.1:3001');
+  list.push('http://localhost:11434');
+  list.push('http://127.0.0.1:11434');
+  return list;
+}
 
 export class OllamaEngine {
   constructor() {
@@ -40,8 +51,17 @@ export class OllamaEngine {
     return this.availableModels;
   }
 
+  setRemoteApiUrl(url) {
+    if (url) {
+      localStorage.setItem('vixer_remote_api_url', url.replace(/\/$/, ''));
+    } else {
+      localStorage.removeItem('vixer_remote_api_url');
+    }
+  }
+
   async detectWorkingBaseUrl() {
-    for (const url of OLLAMA_BASE_URLS) {
+    const endpoints = getOllamaEndpoints();
+    for (const url of endpoints) {
       try {
         const res = await fetch(`${url}/api/tags`, { method: 'GET' });
         if (res.ok) {
@@ -52,7 +72,7 @@ export class OllamaEngine {
         // Tentar próximo endpoint
       }
     }
-    return '/ollama'; // Default para o proxy Vite
+    return endpoints[0] || '/ollama';
   }
 
   setModel(modelId) {
@@ -61,7 +81,7 @@ export class OllamaEngine {
   }
 
   async fetchLocalModels() {
-    for (const baseUrl of [this.activeBaseUrl, ...OLLAMA_BASE_URLS]) {
+    for (const baseUrl of [this.activeBaseUrl, ...getOllamaEndpoints()]) {
       try {
         const res = await fetch(`${baseUrl}/api/tags`);
         if (!res.ok) continue;
