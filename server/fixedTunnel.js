@@ -18,7 +18,8 @@ async function startNgrokTunnel() {
   try {
     const listener = await ngrok.forward({
       addr: PORT,
-      authtoken: NGROK_AUTH_TOKEN
+      authtoken: NGROK_AUTH_TOKEN,
+      domain: 'demeanor-unlocked-kilobyte.ngrok-free.dev'
     });
     const url = listener.url();
 
