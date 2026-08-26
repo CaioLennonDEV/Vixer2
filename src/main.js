@@ -326,74 +326,92 @@ function setupEventListeners() {
   }
 
   // Auth Modal Listeners
-  closeAuthModalBtn.addEventListener('click', () => authModal.classList.add('hidden'));
+  if (closeAuthModalBtn && authModal) {
+    closeAuthModalBtn.addEventListener('click', () => authModal.classList.add('hidden'));
+  }
 
-  tabLoginBtn.addEventListener('click', () => {
-    tabLoginBtn.classList.add('active');
-    tabRegisterBtn.classList.remove('active');
-    loginForm.classList.remove('hidden');
-    registerForm.classList.add('hidden');
-  });
+  if (tabLoginBtn) {
+    tabLoginBtn.addEventListener('click', () => {
+      tabLoginBtn.classList.add('active');
+      if (tabRegisterBtn) tabRegisterBtn.classList.remove('active');
+      if (loginForm) loginForm.classList.remove('hidden');
+      if (registerForm) registerForm.classList.add('hidden');
+    });
+  }
 
-  tabRegisterBtn.addEventListener('click', () => {
-    tabRegisterBtn.classList.add('active');
-    tabLoginBtn.classList.remove('active');
-    registerForm.classList.remove('hidden');
-    loginForm.classList.add('hidden');
-  });
+  if (tabRegisterBtn) {
+    tabRegisterBtn.addEventListener('click', () => {
+      tabRegisterBtn.classList.add('active');
+      if (tabLoginBtn) tabLoginBtn.classList.remove('active');
+      if (registerForm) registerForm.classList.remove('hidden');
+      if (loginForm) loginForm.classList.add('hidden');
+    });
+  }
 
-  regType.addEventListener('change', () => {
-    populateCourseOptions(regType.value);
-  });
+  if (regType) {
+    regType.addEventListener('change', () => {
+      populateCourseOptions(regType.value);
+    });
+  }
 
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    loginError.classList.add('hidden');
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (loginError) loginError.classList.add('hidden');
 
-    try {
-      await DatabaseService.loginUser(loginEmail.value, loginPassword.value);
-      authModal.classList.add('hidden');
-      updateUserSessionUI();
-    } catch (err) {
-      loginError.textContent = err.message;
-      loginError.classList.remove('hidden');
-    }
-  });
+      try {
+        await DatabaseService.loginUser(loginEmail.value, loginPassword.value);
+        if (authModal) authModal.classList.add('hidden');
+        updateUserSessionUI();
+      } catch (err) {
+        if (loginError) {
+          loginError.textContent = err.message;
+          loginError.classList.remove('hidden');
+        }
+      }
+    });
+  }
 
-  registerForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    regError.classList.add('hidden');
+  if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (regError) regError.classList.add('hidden');
 
-    try {
-      await DatabaseService.registerUser({
-        name: regName.value,
-        email: regEmail.value,
-        password: regPassword.value,
-        type: regType.value,
-        course: regCourse.value
-      });
-      authModal.classList.add('hidden');
-      updateUserSessionUI();
-    } catch (err) {
-      regError.textContent = err.message;
-      regError.classList.remove('hidden');
-    }
-  });
+      try {
+        await DatabaseService.registerUser({
+          name: regName.value,
+          email: regEmail.value,
+          password: regPassword.value,
+          type: regType.value,
+          course: regCourse.value
+        });
+        if (authModal) authModal.classList.add('hidden');
+        updateUserSessionUI();
+      } catch (err) {
+        if (regError) {
+          regError.textContent = err.message;
+          regError.classList.remove('hidden');
+        }
+      }
+    });
+  }
 
-  logoutBtn.addEventListener('click', handleLogout);
+  if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
   // Sidebar Toggles
-  openSidebarBtn.addEventListener('click', openSidebar);
-  closeSidebarBtn.addEventListener('click', closeSidebar);
-  sidebarBackdrop.addEventListener('click', closeSidebar);
-  closeWarningBtn.addEventListener('click', () => webgpuModal.classList.add('hidden'));
+  if (openSidebarBtn) openSidebarBtn.addEventListener('click', openSidebar);
+  if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebar);
+  if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeSidebar);
+  if (closeWarningBtn && webgpuModal) closeWarningBtn.addEventListener('click', () => webgpuModal.classList.add('hidden'));
 
   // New Chat
-  newChatBtn.addEventListener('click', () => {
-    StorageManager.createNewChat();
-    initChatSession();
-    closeSidebar();
-  });
+  if (newChatBtn) {
+    newChatBtn.addEventListener('click', () => {
+      StorageManager.createNewChat();
+      initChatSession();
+      closeSidebar();
+    });
+  }
 
   if (modelSelect) {
     modelSelect.addEventListener('change', () => {
@@ -425,31 +443,37 @@ function setupEventListeners() {
   }
 
   // Input Auto-expansion (capped at 3 lines / 76px)
-  userInput.addEventListener('input', () => {
-    userInput.style.height = 'auto';
-    userInput.style.height = Math.min(userInput.scrollHeight, 76) + 'px';
-  });
+  if (userInput) {
+    userInput.addEventListener('input', () => {
+      userInput.style.height = 'auto';
+      userInput.style.height = Math.min(userInput.scrollHeight, 76) + 'px';
+    });
 
-  userInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  });
+    userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    });
+  }
 
-  sendBtn.addEventListener('click', handleSendMessage);
-  stopBtn.addEventListener('click', () => {
-    llmEngine.stopGeneration();
-    stopBtn.classList.add('hidden');
-    sendBtn.classList.remove('hidden');
-    if (avatarWidget) avatarWidget.setThinking(false);
-  });
+  if (sendBtn) sendBtn.addEventListener('click', handleSendMessage);
+  if (stopBtn) {
+    stopBtn.addEventListener('click', () => {
+      llmEngine.stopGeneration();
+      stopBtn.classList.add('hidden');
+      if (sendBtn) sendBtn.classList.remove('hidden');
+      if (avatarWidget) avatarWidget.setThinking(false);
+    });
+  }
 
   // Quick Prompt Chips
   document.querySelectorAll('.quick-prompt-card').forEach(card => {
     card.addEventListener('click', () => {
-      userInput.value = card.dataset.prompt;
-      userInput.focus();
+      if (userInput) {
+        userInput.value = card.dataset.prompt;
+        userInput.focus();
+      }
       handleSendMessage();
     });
   });

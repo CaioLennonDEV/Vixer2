@@ -137,12 +137,10 @@ export class OllamaEngine {
       }
     };
 
-    // Tenta primeiro o endpoint OpenAI (/v1/chat/completions) via activeBaseUrl
+    const base = this.activeBaseUrl.replace(/\/$/, '');
     const endpointsToTry = [
-      `${this.activeBaseUrl}/v1/chat/completions`,
-      `${this.activeBaseUrl}/api/chat`,
-      '/ollama/v1/chat/completions',
-      'http://localhost:11434/v1/chat/completions'
+      `${base}/v1/chat/completions`,
+      `${base}/api/chat`
     ];
 
     let success = false;
