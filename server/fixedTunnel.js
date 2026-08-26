@@ -37,6 +37,8 @@ async function startNgrokTunnel() {
     }
 
     // O Ngrok se mantém vivo automaticamente, não precisa de KeepAlive manual.
+    // Para evitar que o Node.js encerre o script e derrube o túnel, deixamos o processo ativo:
+    process.stdin.resume();
 
   } catch (err) {
     console.error(`[VixerTunnel] Falha ao iniciar Ngrok:`, err.message);
