@@ -427,18 +427,27 @@ html, body {
   align-items: center;
 }
 
-.welcome-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--multivix-red-bg);
-  color: var(--multivix-red);
+.welcome-avatar-hero {
+  width: 130px;
+  height: 130px;
+  margin: 0 auto 0.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 14px rgba(153, 0, 0, 0.15);
+  position: relative;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, rgba(153, 0, 0, 0.08) 0%, rgba(179, 0, 0, 0.15) 100%);
+  border: 2px solid rgba(153, 0, 0, 0.18);
+  box-shadow: 0 8px 24px rgba(153, 0, 0, 0.14);
+  overflow: hidden;
+}
+
+.welcome-avatar-hero-canvas {
+  width: 155px;
+  height: auto;
+  object-fit: contain;
+  transform: translateY(74px);
+  pointer-events: none;
 }
 
 .welcome-screen h2 {
@@ -704,39 +713,62 @@ html, body {
 
 .input-card {
   background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 24px;
+  padding: 0.4rem 0.6rem 0.4rem 0.85rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-  transition: border-color var(--transition-fast);
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: all var(--transition-fast);
 }
 
 .input-card:focus-within {
   border-color: var(--multivix-red);
-  box-shadow: 0 0 0 2px var(--multivix-red-bg), 0 4px 16px rgba(0,0,0,0.04);
+  box-shadow: 0 0 0 3px rgba(153, 0, 0, 0.12), 0 6px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* Hide all scrollbars globally across the entire project while keeping full scroll functionality */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 #user-input {
-  width: 100%;
+  flex: 1;
   background: transparent;
   border: none;
   color: var(--text-main);
   font-family: var(--font-sans);
   font-size: 0.92rem;
+  line-height: 1.45;
   outline: none;
   resize: none;
-  max-height: 140px;
+  max-height: 76px; /* Limite de 3 linhas de texto */
   min-height: 24px;
+  padding: 0.35rem 0;
+  margin: 0;
+  box-sizing: border-box;
+  display: block;
+  overflow-y: auto;
 }
 
-.input-actions {
+#user-input::placeholder {
+  color: #9ca3af;
+}
+
+.actions-right {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .metrics-badge {
@@ -856,3 +888,56 @@ html, body {
     padding: 0.65rem 0.85rem 0.85rem;
   }
 }
+
+/* ==========================================================================
+   AVATAR CHARACTER WIDGET (Presenter Animated Entrance)
+   ========================================================================== */
+.avatar-widget {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease;
+}
+
+.avatar-widget.active-presenter {
+  transform: translateX(-50%) translateY(160px);
+  opacity: 1;
+}
+
+.avatar-canvas {
+  width: 480px;
+  height: auto;
+  filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.4));
+  pointer-events: auto;
+  cursor: default;
+  user-select: none;
+}
+
+@media (max-width: 600px) {
+  .avatar-widget.active-presenter {
+    transform: translateX(-50%) translateY(290px);
+  }
+  .avatar-canvas {
+    width: 320px;
+  }
+}
+
+/* Chat Input Wrapper slide-down animation when AI presenter is active */
+.chat-input-wrapper {
+  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease;
+}
+
+.chat-input-wrapper.hidden-for-avatar {
+  transform: translateY(160%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+

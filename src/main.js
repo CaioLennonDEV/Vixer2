@@ -1,14 +1,19 @@
 import { marked } from 'marked';
 import hljs from 'highlight.js';
-import { GroqEngine, GROQ_MODELS } from './groqEngine.js';
+import { OllamaEngine, DEFAULT_OLLAMA_MODEL } from './ollamaEngine.js';
 import { StorageManager } from './storage.js';
 import { DatabaseService } from './db.js';
 import { COURSES_DATA, generateCourseSystemPrompt } from './coursesData.js';
 import { RAGEngine } from './ragEngine.js';
 import { parsePDFFile } from './pdfParser.js';
+import { AvatarCharacter } from './avatarCharacter.js';
 
-// Instantiate Groq Engine
-const llmEngine = new GroqEngine();
+// Instantiate Local Ollama PC Engine (Model: 4skl/gemma4-e2b-mtp:latest)
+const llmEngine = new OllamaEngine();
+
+// Instantiate Animated 3D/2D Avatar Character Widget (Chroma Key Green Screen Removal)
+const avatarWidget = new AvatarCharacter({ position: 'bottom-right' });
+
 
 // Configure Marked with Highlight.js
 marked.setOptions({
@@ -102,7 +107,6 @@ const activePdfsContainer = document.getElementById('active-pdfs-container');
 
 // App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-  // Groq não usa WebGPU — esconder modal de aviso
   if (webgpuModal) webgpuModal.classList.add('hidden');
 
   // Populate Register Course dropdown
@@ -110,27 +114,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Restore User Session & Preferences
   updateUserSessionUI();
-  updateStatusUI('loading', 'Conectando ao Groq...');
+  updateStatusUI('loading', 'Conectando ao Ollama Local...');
 
-  // Buscar modelos disponíveis na conta Groq
+  // Detectar modelos instalados no Ollama local (ex: 4skl/gemma4-e2b-mtp:latest)
   const models = await llmEngine.init();
 
   if (modelSelect) {
     modelSelect.innerHTML = '';
     if (models.length === 0) {
       const opt = document.createElement('option');
-      opt.textContent = 'Nenhum modelo disponível';
+      opt.value = DEFAULT_OLLAMA_MODEL;
+      opt.textContent = `🦙 ${DEFAULT_OLLAMA_MODEL}`;
       modelSelect.appendChild(opt);
-      updateStatusUI('error', 'Erro de conexão');
+      updateStatusUI('ready', `Ollama Local · ${DEFAULT_OLLAMA_MODEL}`);
     } else {
       models.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.id;
-        opt.textContent = m.label;
+        opt.textContent = `🦙 ${m.label}`;
         if (m.id === llmEngine.currentModelId) opt.selected = true;
         modelSelect.appendChild(opt);
       });
-      updateStatusUI('ready', `Groq AI Ativo · ${models[0].label}`);
+      updateStatusUI('ready', `Ollama Local · ${llmEngine.currentModelId}`);
     }
   }
 
@@ -155,14 +160,7 @@ function updateUserSessionUI() {
   const currentUser = DatabaseService.getCurrentUserSession();
 
   if (currentUser) {
-    userHeaderProfile.innerHTML = `
-      <div class="user-badge-header">
-        <span>👤 ${escapeHtml(currentUser.name)}</span>
-        <button id="header-logout-btn" class="btn btn-sm btn-ghost" title="Sair da conta" style="padding: 0 0.4rem;">✕</button>
-      </div>
-    `;
-
-    document.getElementById('header-logout-btn').addEventListener('click', handleLogout);
+    userHeaderProfile.innerHTML = '';
     logoutBtn.classList.remove('hidden');
 
     sidebarUserName.textContent = currentUser.name;
@@ -255,7 +253,6 @@ function appendMessageUI(role, content, animate = true) {
 
   const footerHTML = role === 'assistant' ? `
     <div class="message-footer-bar">
-      <div class="message-meta"></div>
       <button class="copy-msg-btn" title="Copiar resposta da IA">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
         <span>Copiar</span>
@@ -301,30 +298,32 @@ function appendMessageUI(role, content, animate = true) {
 }
 
 function setupEventListeners() {
-  // PDF Upload Handler
-  attachPdfBtn.addEventListener('click', () => pdfFileInput.click());
-  pdfFileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // PDF Upload Handler (if present)
+  if (attachPdfBtn && pdfFileInput) {
+    attachPdfBtn.addEventListener('click', () => pdfFileInput.click());
+    pdfFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    try {
-      attachPdfBtn.disabled = true;
-      attachPdfBtn.style.opacity = '0.5';
+      try {
+        attachPdfBtn.disabled = true;
+        attachPdfBtn.style.opacity = '0.5';
 
-      const parsedPdf = await parsePDFFile(file);
-      RAGEngine.addUploadedPDF(parsedPdf);
+        const parsedPdf = await parsePDFFile(file);
+        RAGEngine.addUploadedPDF(parsedPdf);
 
-      renderActivePdfChips();
-      pdfFileInput.value = '';
-      attachPdfBtn.disabled = false;
-      attachPdfBtn.style.opacity = '1';
-    } catch (err) {
-      console.error('Erro ao ler PDF:', err);
-      alert('Não foi possível ler o arquivo PDF: ' + err.message);
-      attachPdfBtn.disabled = false;
-      attachPdfBtn.style.opacity = '1';
-    }
-  });
+        renderActivePdfChips();
+        pdfFileInput.value = '';
+        attachPdfBtn.disabled = false;
+        attachPdfBtn.style.opacity = '1';
+      } catch (err) {
+        console.error('Erro ao ler PDF:', err);
+        alert('Não foi possível ler o arquivo PDF: ' + err.message);
+        attachPdfBtn.disabled = false;
+        attachPdfBtn.style.opacity = '1';
+      }
+    });
+  }
 
   // Auth Modal Listeners
   closeAuthModalBtn.addEventListener('click', () => authModal.classList.add('hidden'));
@@ -396,11 +395,13 @@ function setupEventListeners() {
     closeSidebar();
   });
 
-  modelSelect.addEventListener('change', () => {
-    const selectedModel = modelSelect.value;
-    llmEngine.setModel(selectedModel);
-    StorageManager.saveSelectedModel(selectedModel);
-  });
+  if (modelSelect) {
+    modelSelect.addEventListener('change', () => {
+      const selectedModel = modelSelect.value;
+      llmEngine.setModel(selectedModel);
+      StorageManager.saveSelectedModel(selectedModel);
+    });
+  }
 
   if (unloadModelBtn) unloadModelBtn.classList.add('hidden');
 
@@ -423,10 +424,10 @@ function setupEventListeners() {
     });
   }
 
-  // Input Auto-expansion
+  // Input Auto-expansion (capped at 3 lines / 76px)
   userInput.addEventListener('input', () => {
     userInput.style.height = 'auto';
-    userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+    userInput.style.height = Math.min(userInput.scrollHeight, 76) + 'px';
   });
 
   userInput.addEventListener('keydown', (e) => {
@@ -441,6 +442,7 @@ function setupEventListeners() {
     llmEngine.stopGeneration();
     stopBtn.classList.add('hidden');
     sendBtn.classList.remove('hidden');
+    if (avatarWidget) avatarWidget.setThinking(false);
   });
 
   // Quick Prompt Chips
@@ -454,6 +456,7 @@ function setupEventListeners() {
 }
 
 function renderActivePdfChips() {
+  if (!activePdfsContainer) return;
   activePdfsContainer.innerHTML = '';
   if (RAGEngine.activeUploadedPdfs.length === 0) {
     activePdfsContainer.classList.add('hidden');
@@ -500,6 +503,9 @@ async function handleSendMessage() {
     if (!loaded) return;
   }
 
+  // Notificar o avatar de que a IA está pensando/gerando
+  if (avatarWidget) avatarWidget.setThinking(true);
+
   welcomeScreen.classList.add('hidden');
 
   currentMessages.push({ role: 'user', content: text });
@@ -508,12 +514,6 @@ async function handleSendMessage() {
 
   const assistantRow = appendMessageUI('assistant', '...', true);
   const bubbleElement = assistantRow.querySelector('.message-bubble');
-  let metaElement = assistantRow.querySelector('.message-meta');
-  if (!metaElement) {
-    metaElement = document.createElement('div');
-    metaElement.className = 'message-meta';
-    assistantRow.querySelector('.message-content').appendChild(metaElement);
-  }
 
   sendBtn.classList.add('hidden');
   stopBtn.classList.remove('hidden');
@@ -528,25 +528,43 @@ async function handleSendMessage() {
   // Realizar busca RAG nos 21 PDFs Multivix + PDFs do usuário
   const ragContext = RAGEngine.buildRAGContextString(text);
 
-  const userGreetingInstruction = currentUser
-    ? `Você está conversando com o aluno ${userName}, do curso de ${userCourse} (${userType}). Se o aluno perguntar qual é o nome dele ou quem ele é, diga diretamente que ele se chama ${userName}.`
-    : `Você está conversando com um estudante em modo Convidado. Se o estudante perguntar qual é o nome dele ou se você o conhece, diga amigavelmente que ele está acessando como Convidado e convide-o a clicar em "Entrar / Cadastrar" no topo para personalizar o atendimento pelo nome dele!`;
+  // Verificar se é a primeira mensagem da conversa
+  const userMsgCount = currentMessages.filter(m => m.role === 'user').length;
+  const isFirstTurn = userMsgCount <= 1;
+
+  // Construir resumo explícito do histórico anterior para garantir que modelos locais (Ollama) leiam o contexto
+  const previousTurns = currentMessages.slice(0, currentMessages.length - 1);
+  const historySummary = previousTurns.length > 0
+    ? `HISTÓRICO DAS MENSAGENS ANTERIORES NESTE CHAT:\n` +
+      previousTurns.map(m => `- ${m.role === 'user' ? 'Aluno' : 'Vixer AI'}: "${m.content.slice(0, 300).replace(/\n/g, ' ')}"`).join('\n') + `\n\n`
+    : '';
+
+  const greetingInstruction = isFirstTurn
+    ? (currentUser 
+        ? `Esta é a PRIMEIRA mensagem do atendimento. Se for saudar, use EXCLUSIVAMENTE o nome do usuário cadastrado na sessão: "${userName}".` 
+        : `Esta é a PRIMEIRA mensagem do atendimento. O usuário está acessando no modo Convidado.`)
+    : `ATENÇÃO: A CONVERSA JÁ ESTÁ EM ANDAMENTO. NUNCA diga "Olá", NUNCA repita saudações ou apresentações formais. Responda diretamente e de forma fluida à pergunta.`;
 
   const systemMessageContent = 
-    `Você é o Vixer AI, assistente virtual da Faculdade Multivix. ` +
-    `${userGreetingInstruction} ` +
-    `Responda em português brasileiro de forma natural e conversacional — como um atendente humano inteligente, não como um documento. ` +
-    `Adapte o tamanho e o tom da resposta ao que o aluno pediu: se ele pedir algo curto, responda curto; se pedir detalhes, explique com calma. ` +
-    `Quando houver documentos de referência abaixo, use as informações deles como base, mas escreva com suas próprias palavras, de forma fluida. ` +
-    `NUNCA invente informações que não estejam nos documentos ou no histórico da conversa. ` +
-    `Você possui memória de todas as mensagens trocadas nesta conversa.`;
+    `Você é o Vixer AI, assistente virtual da Faculdade Multivix.\n` +
+    `IDENTIDADE DO USUÁRIO CONVERSANDO COM VOCÊ AGORA:\n` +
+    `- Nome oficial do usuário na sessão: "${userName}"\n` +
+    `- Curso do usuário: "${userCourse}" (${userType})\n` +
+    `- REGRA DE NOME: Sempre que for se dirigir ao usuário, use estritamente o nome registrado na sessão ("${userName}"). NUNCA use nenhum outro nome.\n\n` +
+    `${greetingInstruction}\n\n` +
+    `${historySummary}` +
+    `REGRAS OBRIGATÓRIAS DE HISTÓRICO E CONVERSAÇÃO:\n` +
+    `- Esta é uma conversa contínua. Leia o HISTÓRICO DAS MENSAGENS ANTERIORES acima para ter total memória do que já foi perguntado e respondido.\n` +
+    `- Quando o usuário fizer perguntas de continuação (ex: "me traz mais informações", "e a rematrícula?", "resuma isso"), refira-se ao contexto das mensagens anteriores.\n` +
+    `- Responda em português brasileiro de forma natural, direta e humana (como em uma conversa contínua de chat/WhatsApp).\n` +
+    `- Use informações dos documentos fornecidos como apoio factual, mas fale de forma conversacional e fluida.`;
 
-  // Anexar o Contexto RAG diretamente à última pergunta do usuário para máxima atenção do modelo
+  // Anexar o Contexto RAG à última pergunta de forma limpa sem quebrar o fluxo de diálogo
   const threadMessages = currentMessages.map((m, idx) => {
     if (idx === currentMessages.length - 1 && m.role === 'user' && ragContext) {
       return {
         role: 'user',
-        content: `${ragContext}\n\nPergunta: ${m.content}`
+        content: `[Documentos Multivix de Apoio:\n${ragContext}]\n\nPergunta do aluno: ${m.content}`
       };
     }
     return m;
@@ -562,7 +580,6 @@ async function handleSendMessage() {
     (fullText, delta, tokensPerSec) => {
       bubbleElement.innerHTML = marked.parse(fullText);
       metricsBadge.textContent = `${tokensPerSec} tok/s`;
-      metaElement.textContent = `Velocidade: ${tokensPerSec} tokens/seg`;
       scrollToBottom();
     },
     (finalText, stats) => {
@@ -570,11 +587,12 @@ async function handleSendMessage() {
       StorageManager.updateActiveChatMessages(currentMessages);
       renderHistoryList();
 
-      const modelLabel = GROQ_MODELS.find(m => m.id === stats.modelUsed)?.label || stats.modelUsed;
-      metaElement.textContent = `${stats.totalElapsed}s · ${stats.finalTokensPerSec} tok/s · ${modelLabel}`;
       sendBtn.classList.remove('hidden');
       stopBtn.classList.add('hidden');
       metricsBadge.classList.add('hidden');
+
+      // Finalizado com sucesso -> voltar ao vídeo principal após o ciclo atual terminar
+      if (avatarWidget) avatarWidget.setThinking(false);
     },
     (err) => {
       console.error('Erro Groq:', err);
@@ -582,6 +600,9 @@ async function handleSendMessage() {
       sendBtn.classList.remove('hidden');
       stopBtn.classList.add('hidden');
       metricsBadge.classList.add('hidden');
+
+      // Finalizado com erro -> voltar ao vídeo principal após o ciclo atual terminar
+      if (avatarWidget) avatarWidget.setThinking(false);
     }
   );
 }
@@ -589,16 +610,6 @@ async function handleSendMessage() {
 function updateStatusUI(statusClass, text) {
   if (modelStatusTag) modelStatusTag.className = `model-status-tag status-${statusClass}`;
   if (modelStatusText) modelStatusText.textContent = text;
-
-  if (headerStatusBadge) {
-    if (statusClass === 'ready') {
-      headerStatusBadge.className = 'badge badge-success';
-      headerStatusBadge.textContent = 'Ativo';
-    } else {
-      headerStatusBadge.className = 'badge badge-neutral';
-      headerStatusBadge.textContent = 'Aguardando';
-    }
-  }
 }
 
 function openSidebar() {

@@ -1,21 +1,28 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>VIXER AI</title>
-  <meta name="description" content="Inteligência Artificial Vixer com Leitura e Busca em 21 Documentos PDF Oficiais da Multivix.">
-  
+  <meta name="description"
+    content="Inteligência Artificial Vixer com Leitura e Busca em 21 Documentos PDF Oficiais da Multivix.">
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap"
+    rel="stylesheet">
+
   <!-- Highlight.js dark theme -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
-  
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css"
+    crossorigin="anonymous">
+
   <link rel="stylesheet" href="./src/style.css">
 </head>
+
 <body>
   <div id="app" class="app-layout">
     <!-- WebGPU Warning Modal -->
@@ -84,7 +91,8 @@
           <button type="submit" class="btn btn-multivix btn-block">Salvar Conta no Banco</button>
         </form>
 
-        <button id="close-auth-modal-btn" class="btn btn-ghost-dark btn-block" style="margin-top: 0.5rem;">Continuar como Convidado</button>
+        <button id="close-auth-modal-btn" class="btn btn-ghost-dark btn-block" style="margin-top: 0.5rem;">Continuar
+          como Convidado</button>
       </div>
     </div>
 
@@ -92,19 +100,22 @@
     <header class="multivix-navbar">
       <div class="navbar-left">
         <button id="open-sidebar-btn" class="icon-btn-nav" aria-label="Abrir Menu">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
         </button>
         <div class="multivix-brand">
           <span class="brand-name">VIXER</span>
         </div>
       </div>
-      
+
       <div class="navbar-right">
         <div id="user-header-profile" class="user-header-profile">
           <button id="open-auth-btn" class="btn btn-sm btn-ghost">Entrar / Cadastrar</button>
         </div>
         <button id="unload-model-btn" class="btn btn-sm btn-ghost hidden">Liberar RAM</button>
-        <span id="header-status-badge" class="badge badge-neutral">Pronto</span>
       </div>
     </header>
 
@@ -119,32 +130,22 @@
           </div>
         </div>
         <button id="close-sidebar-btn" class="icon-btn-dark">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
 
       <button id="new-chat-btn" class="btn btn-multivix btn-block">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
         Novo Atendimento
       </button>
 
-      <!-- Model Selection Section -->
-      <div class="sidebar-section">
-        <span class="section-label">Modelo de IA (WebGPU)</span>
-        <select id="model-select" class="select-input model-select-dropdown" style="margin-top: 0.35rem; cursor: pointer; background-color: #ffffff;">
-          <option value="Qwen2.5-0.5B-Instruct-q4f32_1-MLC" selected>🪶 Qwen 2.5 0.5B (Ultra Leve/Estável - 350MB)</option>
-          <option value="Llama-3.2-1B-Instruct-q4f32_1-MLC">⚡ Llama 3.2 1B (Rápido - 800MB)</option>
-          <option value="Llama-3.2-3B-Instruct-q4f32_1-MLC">🚀 Llama 3.2 3B (Alta Performance - 1.8GB)</option>
-          <option value="Qwen2.5-1.5B-Instruct-q4f32_1-MLC">🧠 Qwen 2.5 1.5B (Equilibrado - 1.1GB)</option>
-          <option value="Qwen2.5-7B-Instruct-q4f32_1-MLC">🔥 Qwen 2.5 7B (Performance - 4.3GB)</option>
-          <option value="DeepSeek-R1-Distill-Qwen-7B-q4f32_1-MLC">🔬 DeepSeek R1 7B (Raciocínio - 4.3GB)</option>
-          <option value="Llama-3.1-8B-Instruct-q4f32_1-MLC">👑 Llama 3.1 8B (Máxima Precisão - 4.3GB)</option>
-        </select>
-        <button id="clear-cache-btn" class="btn btn-sm btn-ghost" style="margin-top: 0.4rem; width: 100%; font-size: 0.76rem; color: #6b7280; border: 1px dashed #d1d5db;">
-          🧹 Limpar Cache de Modelos (Reset)
-        </button>
-        <textarea id="system-prompt-input" style="display: none;"></textarea>
-      </div>
+
 
       <!-- PDF Base Info Box in Sidebar -->
       <div class="sidebar-section">
@@ -153,7 +154,8 @@
             <span class="pdf-icon">📚</span>
             <strong>Base de PDFs Multivix</strong>
           </div>
-          <p class="pdf-kb-desc">21 Documentos oficiais (Calendário 2026, Regimento, Manuais, Portarias) indexados para consulta instantânea.</p>
+          <p class="pdf-kb-desc">21 Documentos oficiais (Calendário 2026, Regimento, Manuais, Portarias) indexados para
+            consulta instantânea.</p>
         </div>
       </div>
 
@@ -191,13 +193,16 @@
       <div id="messages-container" class="messages-container">
         <!-- Welcome Screen -->
         <div id="welcome-screen" class="welcome-screen">
-          <div class="welcome-icon">V</div>
+          <div class="welcome-avatar-hero">
+            <canvas id="welcome-avatar-hero-canvas" class="welcome-avatar-hero-canvas"></canvas>
+          </div>
           <h2 id="welcome-user-title">Olá! Sou o Vixer AI</h2>
           <div id="welcome-user-badge" class="student-context-badge">Sistemas de Informação • Presencial</div>
           <p>Tenho acesso a **21 Documentos e PDFs Oficiais da Multivix**. Como posso te ajudar hoje?</p>
 
           <div class="quick-prompts-grid">
-            <button class="quick-prompt-card" data-prompt="O que diz o Regimento Interno da Multivix sobre o limite de faltas e reprovação?">
+            <button class="quick-prompt-card"
+              data-prompt="O que diz o Regimento Interno da Multivix sobre o limite de faltas e reprovação?">
               <span class="prompt-icon">📜</span>
               <div class="prompt-text">
                 <strong>Regimento Interno</strong>
@@ -205,7 +210,8 @@
               </div>
             </button>
 
-            <button class="quick-prompt-card" data-prompt="Como funciona a isenção de taxa para prova substitutiva segundo a Portaria 04?">
+            <button class="quick-prompt-card"
+              data-prompt="Como funciona a isenção de taxa para prova substitutiva segundo a Portaria 04?">
               <span class="prompt-icon">📝</span>
               <div class="prompt-text">
                 <strong>Prova Substitutiva</strong>
@@ -213,7 +219,8 @@
               </div>
             </button>
 
-            <button class="quick-prompt-card" data-prompt="Quais são as datas importantes do Calendário Acadêmico 2026?">
+            <button class="quick-prompt-card"
+              data-prompt="Quais são as datas importantes do Calendário Acadêmico 2026?">
               <span class="prompt-icon">📅</span>
               <div class="prompt-text">
                 <strong>Calendário 2026</strong>
@@ -221,7 +228,8 @@
               </div>
             </button>
 
-            <button class="quick-prompt-card" data-prompt="Como funciona o processo de rematrícula para alunos presenciais?">
+            <button class="quick-prompt-card"
+              data-prompt="Como funciona o processo de rematrícula para alunos presenciais?">
               <span class="prompt-icon">📖</span>
               <div class="prompt-text">
                 <strong>Manual do Aluno</strong>
@@ -234,28 +242,17 @@
 
       <!-- Input Area -->
       <div class="chat-input-wrapper">
-        <!-- Uploaded PDFs Active Chips Container -->
-        <div id="active-pdfs-container" class="active-pdfs-container hidden"></div>
-
         <div class="input-card">
-          <textarea 
-            id="user-input" 
-            placeholder="Digite sua dúvida ou pergunte algo sobre os PDFs da Multivix..." 
-            rows="1"
-          ></textarea>
-          
-          <div class="input-actions">
-            <!-- Hidden File Input for PDFs -->
-            <input type="file" id="pdf-file-input" accept=".pdf" class="hidden">
-            
-            <button id="attach-pdf-btn" class="btn btn-icon-ghost" title="Anexar PDF pessoal">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-            </button>
+          <textarea id="user-input" placeholder="Digite sua dúvida ou pergunte algo da Multivix..." rows="1"></textarea>
 
+          <div class="actions-right">
             <span id="metrics-badge" class="metrics-badge hidden">0 tok/s</span>
             <button id="stop-btn" class="btn btn-danger hidden">Parar</button>
             <button id="send-btn" class="btn btn-multivix btn-icon" aria-label="Enviar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
             </button>
           </div>
         </div>
@@ -268,4 +265,5 @@
 
   <script type="module" src="./src/main.js"></script>
 </body>
+
 </html>
