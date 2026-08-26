@@ -897,55 +897,70 @@ html, body {
   bottom: 0;
   right: 1.5rem;
   left: auto;
-  transform: translateY(150px);
+  transform: translateY(500px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: center;
   pointer-events: none;
-  opacity: 1;
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease;
+  opacity: 0;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+.avatar-widget.visible-avatar {
+  transform: translateY(360px) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .avatar-widget.active-presenter {
-  transform: translateY(110px);
-  opacity: 1;
+  transform: translateY(360px);
 }
 
 .avatar-canvas {
-  width: 360px;
+  width: 440px;
   height: auto;
-  filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.35));
   pointer-events: auto;
   cursor: default;
   user-select: none;
 }
 
 @media (max-width: 600px) {
-  .avatar-widget {
-    right: auto;
-    left: 50%;
-    transform: translateX(-50%) translateY(120%);
-    opacity: 0;
+  .avatar-widget,
+  .avatar-widget.visible-avatar {
+    right: auto !important;
+    left: 50% !important;
+    transform: translateX(-50%) translateY(500px) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
+
   .avatar-widget.active-presenter {
-    transform: translateX(-50%) translateY(290px);
-    opacity: 1;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) translateY(280px) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
+
   .avatar-canvas {
-    width: 320px;
+    width: 320px !important;
+    margin: 0 auto !important;
   }
 }
 
-/* Chat Input Wrapper slide-down animation when AI presenter is active */
+/* Chat Input Wrapper */
 .chat-input-wrapper {
-  transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.45s ease;
+  transition: transform 0.4s ease, opacity 0.4s ease;
 }
 
-.chat-input-wrapper.hidden-for-avatar {
-  transform: translateY(160%);
-  opacity: 0;
-  pointer-events: none;
+@media (max-width: 600px) {
+  .chat-input-wrapper.hidden-for-avatar {
+    transform: translateY(160%);
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 

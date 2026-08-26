@@ -6,18 +6,11 @@
 
 export const DEFAULT_OLLAMA_MODEL = '4skl/gemma4-e2b-mtp:latest';
 
-// Configuração de URL remota da API (útil quando o frontend está publicado na Vercel/Netlify e conecta ao PC)
-const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || '').replace(/\/$/, '');
+// Configuração de URL remota da API EXCLUSIVA
+const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || 'https://vixer-pc-caio.loca.lt').replace(/\/$/, '');
 
 function getOllamaEndpoints() {
-  const list = [];
-  if (CONFIGURED_REMOTE_URL) list.push(CONFIGURED_REMOTE_URL);
-  list.push('/ollama');
-  list.push('http://localhost:3001');
-  list.push('http://127.0.0.1:3001');
-  list.push('http://localhost:11434');
-  list.push('http://127.0.0.1:11434');
-  return list;
+  return [CONFIGURED_REMOTE_URL];
 }
 
 const TUNNEL_BYPASS_HEADERS = {
@@ -31,7 +24,7 @@ export class OllamaEngine {
     this.abortController = null;
     this.currentModelId = localStorage.getItem('vixer_ollama_model') || DEFAULT_OLLAMA_MODEL;
     this.availableModels = [];
-    this.activeBaseUrl = '/ollama';
+    this.activeBaseUrl = CONFIGURED_REMOTE_URL;
   }
 
   async init() {
@@ -73,14 +66,14 @@ export class OllamaEngine {
           headers: TUNNEL_BYPASS_HEADERS
         });
         if (res.ok) {
-          console.log(`[OllamaEngine] Conectado com sucesso via: ${url}`);
+          console.log(`[OllamaEngine] Conectado com sucesso via API: ${url}`);
           return url;
         }
       } catch (e) {
         // Tentar próximo endpoint
       }
     }
-    return endpoints[0] || '/ollama';
+    return CONFIGURED_REMOTE_URL;
   }
 
   setModel(modelId) {

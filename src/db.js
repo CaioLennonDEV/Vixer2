@@ -1,13 +1,10 @@
 import { generateCourseSystemPrompt } from './coursesData.js';
 
-const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || '').replace(/\/$/, '');
+const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || 'https://vixer-pc-caio.loca.lt').replace(/\/$/, '');
 
 function getApiBaseUrl() {
   const remoteUrl = localStorage.getItem('vixer_remote_api_url') || CONFIGURED_REMOTE_URL;
-  if (remoteUrl) {
-    return `${remoteUrl.replace(/\/$/, '')}/api`;
-  }
-  return '/api';
+  return `${remoteUrl.replace(/\/$/, '')}/api`;
 }
 
 const COMMON_HEADERS = {

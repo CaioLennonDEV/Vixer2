@@ -66,7 +66,6 @@ export class AvatarCharacter {
     // Canvas element for chroma-key rendering
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'avatar-canvas';
-    this.canvas.title = 'Assistente Vixer';
     this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
 
     this.widget.appendChild(this.idleVideo1);
@@ -123,6 +122,20 @@ export class AvatarCharacter {
         this.renderLoop();
       }
     });
+  }
+
+  /**
+   * Show or hide avatar floating widget
+   */
+  setVisibility(visible) {
+    this.isVisible = visible;
+    if (this.widget) {
+      if (visible) {
+        this.widget.classList.add('visible-avatar');
+      } else {
+        this.widget.classList.remove('visible-avatar');
+      }
+    }
   }
 
   /**
@@ -190,7 +203,10 @@ export class AvatarCharacter {
     if (!this.isAnimRunning) return;
 
     const vid = this.currentVideo;
-    if (this.isVisible && vid && vid.videoWidth > 0) {
+    const heroCanvas = document.getElementById('welcome-avatar-hero-canvas');
+    const isHeroVisible = heroCanvas && heroCanvas.offsetParent !== null;
+
+    if ((this.isVisible || isHeroVisible) && vid && vid.videoWidth > 0) {
       if (vid.paused) {
         vid.play().catch(() => {});
       }
@@ -236,12 +252,11 @@ export class AvatarCharacter {
         }
       }
 
-      // Write processed frame back to canvas
+      // Write processed frame back to main canvas
       this.ctx.putImageData(frame, 0, 0);
 
       // Render frame to Welcome Screen Hero Canvas if present
-      const heroCanvas = document.getElementById('welcome-avatar-hero-canvas');
-      if (heroCanvas && heroCanvas.offsetParent !== null) {
+      if (isHeroVisible) {
         if (heroCanvas.width !== targetWidth || heroCanvas.height !== targetHeight) {
           heroCanvas.width = targetWidth;
           heroCanvas.height = targetHeight;

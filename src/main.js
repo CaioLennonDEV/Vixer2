@@ -234,10 +234,12 @@ function renderMessages() {
 
   if (currentMessages.length === 0) {
     welcomeScreen.classList.remove('hidden');
+    if (avatarWidget) avatarWidget.setVisibility(false);
     return;
   }
 
   welcomeScreen.classList.add('hidden');
+  if (avatarWidget) avatarWidget.setVisibility(true);
   currentMessages.forEach(msg => {
     appendMessageUI(msg.role, msg.content, false);
   });
@@ -528,7 +530,10 @@ async function handleSendMessage() {
   }
 
   // Notificar o avatar de que a IA está pensando/gerando
-  if (avatarWidget) avatarWidget.setThinking(true);
+  if (avatarWidget) {
+    avatarWidget.setVisibility(true);
+    avatarWidget.setThinking(true);
+  }
 
   welcomeScreen.classList.add('hidden');
 
