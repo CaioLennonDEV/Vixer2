@@ -1,6 +1,21 @@
 import { generateCourseSystemPrompt } from './coursesData.js';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || '').replace(/\/$/, '');
+
+function getApiBaseUrl() {
+  const remoteUrl = localStorage.getItem('vixer_remote_api_url') || CONFIGURED_REMOTE_URL;
+  if (remoteUrl) {
+    return `${remoteUrl.replace(/\/$/, '')}/api`;
+  }
+  return '/api';
+}
+
+const COMMON_HEADERS = {
+  'Content-Type': 'application/json',
+  'Bypass-Tunnel-Reminder': 'true',
+  'ngrok-skip-browser-warning': 'true'
+};
+
 const DB_NAME = 'VixerDB_v1';
 const DB_VERSION = 1;
 const SESSION_STORAGE_KEY = 'vixer_active_user_session';
@@ -11,9 +26,10 @@ export class DatabaseService {
    */
   static async registerUser({ name, email, password, type, course }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/register`, {
+      const baseUrl = getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: COMMON_HEADERS,
         body: JSON.stringify({ name, email, password, type, course })
       });
 
@@ -35,9 +51,10 @@ export class DatabaseService {
    */
   static async loginUser(email, password) {
     try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const baseUrl = getApiBaseUrl();
+      const response = await fetch(`${baseUrl}/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: COMMON_HEADERS,
         body: JSON.stringify({ email, password })
       });
 
@@ -59,9 +76,10 @@ export class DatabaseService {
    */
   static async updateUserSystemPrompt(userId, newPrompt) {
     try {
-      await fetch(`${API_BASE_URL}/user/prompt`, {
+      const baseUrl = getApiBaseUrl();
+      await fetch(`${baseUrl}/user/prompt`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: COMMON_HEADERS,
         body: JSON.stringify({ userId, prompt: newPrompt })
       });
     } catch (e) {
