@@ -8,7 +8,13 @@ import { COURSES_DATA, generateCourseSystemPrompt } from '../src/coursesData.js'
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Bypass-Tunnel-Reminder', 'ngrok-skip-browser-warning', 'x-requested-with'],
+  credentials: false
+}));
+app.options('*', cors());
 app.use(express.json());
 
 const { Pool } = pg;
@@ -190,6 +196,9 @@ const OLLAMA_LOCAL_URL = process.env.OLLAMA_LOCAL_URL || 'http://127.0.0.1:11434
 
 // 1. Listar Modelos do Ollama
 app.get('/api/tags', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning');
   try {
     const response = await fetch(`${OLLAMA_LOCAL_URL}/api/tags`);
     if (!response.ok) return res.status(response.status).json({ error: 'Erro ao conectar ao Ollama local' });
