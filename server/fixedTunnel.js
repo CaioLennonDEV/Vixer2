@@ -2,12 +2,13 @@ import localtunnel from 'localtunnel';
 
 const SUBDOMAIN = 'vixer-pc-caio';
 const PORT = 3001;
-const KEEPALIVE_INTERVAL = 30_000; // Ping a cada 30s para manter vivo
+const KEEPALIVE_INTERVAL = 30_000;
+const MAX_RETRIES = 8; // Após 8 tentativas (~32s), aceita URL temporária
 
 let activeTunnel = null;
 let keepaliveTimer = null;
+let retryCount = 0;
 
-// Impede que erros não tratados matem o processo
 process.on('uncaughtException', (err) => {
   console.error('[VixerTunnel] Erro não tratado (ignorado):', err.message);
 });
@@ -19,7 +20,7 @@ function startKeepAlive(tunnel) {
   if (keepaliveTimer) clearInterval(keepaliveTimer);
   keepaliveTimer = setInterval(async () => {
     try {
-      const res = await fetch(tunnel.url, { 
+      const res = await fetch(tunnel.url, {
         method: 'HEAD',
         headers: { 'Bypass-Tunnel-Reminder': 'true' }
       });
@@ -27,10 +28,36 @@ function startKeepAlive(tunnel) {
     } catch {
       console.log('[VixerTunnel] Keepalive falhou. Reconectando...');
       clearInterval(keepaliveTimer);
+      keepaliveTimer = null;
       try { tunnel.close(); } catch {}
+      retryCount = 0;
       setTimeout(startFixedTunnel, 2000);
     }
   }, KEEPALIVE_INTERVAL);
+}
+
+function setupTunnel(tunnel) {
+  activeTunnel = tunnel;
+  retryCount = 0;
+
+  console.log(`\n======================================================`);
+  console.log(`✨ TÚNEL ATIVO:`);
+  console.log(`👉  ${tunnel.url}  👈`);
+  console.log(`======================================================\n`);
+
+  startKeepAlive(tunnel);
+
+  tunnel.on('close', () => {
+    console.log('[VixerTunnel] Conexão encerrada. Reconectando em 5s...');
+    activeTunnel = null;
+    if (keepaliveTimer) { clearInterval(keepaliveTimer); keepaliveTimer = null; }
+    retryCount = 0;
+    setTimeout(startFixedTunnel, 5000);
+  });
+
+  tunnel.on('error', (err) => {
+    console.error('[VixerTunnel] Erro:', err.message);
+  });
 }
 
 async function startFixedTunnel() {
@@ -38,45 +65,29 @@ async function startFixedTunnel() {
     try { activeTunnel.close(); } catch {}
     activeTunnel = null;
   }
-  if (keepaliveTimer) {
-    clearInterval(keepaliveTimer);
-    keepaliveTimer = null;
-  }
+  if (keepaliveTimer) { clearInterval(keepaliveTimer); keepaliveTimer = null; }
 
-  console.log(`[VixerTunnel] Solicitando URL fixa oficial: https://${SUBDOMAIN}.loca.lt ...`);
+  retryCount++;
+
+  console.log(`[VixerTunnel] Tentativa ${retryCount}/${MAX_RETRIES} — Solicitando: https://${SUBDOMAIN}.loca.lt ...`);
+
   try {
     const tunnel = await localtunnel({ port: PORT, subdomain: SUBDOMAIN });
 
     if (tunnel.url.includes(SUBDOMAIN)) {
-      activeTunnel = tunnel;
-      console.log(`\n======================================================`);
-      console.log(`✨ SUCESSO! URL FIXA PADRONIZADA GARANTIDA:`);
-      console.log(`👉  ${tunnel.url}  👈`);
-      console.log(`======================================================\n`);
-
-      // Keepalive para evitar desconexão por inatividade
-      startKeepAlive(tunnel);
+      // URL fixa oficial obtida!
+      setupTunnel(tunnel);
+    } else if (retryCount >= MAX_RETRIES) {
+      // Esgotou tentativas — aceita URL temporária
+      console.log(`\n[VixerTunnel] Não foi possível obter a URL fixa após ${MAX_RETRIES} tentativas.`);
+      console.log(`[VixerTunnel] Usando URL temporária por enquanto...\n`);
+      setupTunnel(tunnel);
     } else {
-      console.log(`\n[Aviso] O subdomínio '${SUBDOMAIN}' ainda estava liberando da sessão anterior.`);
-      console.log(`[VixerTunnel] URL temporária: ${tunnel.url}`);
-      console.log(`[VixerTunnel] Re-tentando pegar a URL oficial fixada em 4 segundos...\n`);
+      // Tenta de novo
+      console.log(`[VixerTunnel] Subdomínio ocupado. URL temp: ${tunnel.url}. Retentando em 4s...`);
       tunnel.close();
       setTimeout(startFixedTunnel, 4000);
-      return;
     }
-
-    tunnel.on('close', () => {
-      console.log('[VixerTunnel] Conexão encerrada. Reconectando em 3s...');
-      activeTunnel = null;
-      setTimeout(startFixedTunnel, 3000);
-    });
-
-    tunnel.on('error', (err) => {
-      console.error('[VixerTunnel] Erro na conexão:', err.message);
-      activeTunnel = null;
-      setTimeout(startFixedTunnel, 3000);
-    });
-
   } catch (err) {
     console.error('[VixerTunnel Error]:', err.message);
     setTimeout(startFixedTunnel, 4000);
