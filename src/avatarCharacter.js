@@ -26,6 +26,21 @@ export class AvatarCharacter {
     this.init();
   }
 
+  createVideoElement(url, autoplay = false) {
+    const video = document.createElement('video');
+    video.src = url;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('muted', '');
+    video.setAttribute('preload', 'auto');
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = autoplay;
+    video.style.display = 'none';
+    video.load();
+    return video;
+  }
+
   init() {
     // Clean up existing widget if present
     const existing = document.getElementById(this.containerId);
@@ -37,26 +52,13 @@ export class AvatarCharacter {
     this.widget.className = 'avatar-widget';
 
     // Create Idle Video 1 (Waving & Blinking)
-    this.idleVideo1 = document.createElement('video');
-    this.idleVideo1.src = this.idle1Url;
-    this.idleVideo1.autoplay = true;
-    this.idleVideo1.muted = true;
-    this.idleVideo1.playsInline = true;
-    this.idleVideo1.style.display = 'none';
+    this.idleVideo1 = this.createVideoElement(this.idle1Url, true);
 
     // Create Idle Video 2 (Holding Notebook)
-    this.idleVideo2 = document.createElement('video');
-    this.idleVideo2.src = this.idle2Url;
-    this.idleVideo2.muted = true;
-    this.idleVideo2.playsInline = true;
-    this.idleVideo2.style.display = 'none';
+    this.idleVideo2 = this.createVideoElement(this.idle2Url, false);
 
     // Create Thinking Video (Hand on Chin)
-    this.thinkingVideo = document.createElement('video');
-    this.thinkingVideo.src = this.thinkingUrl;
-    this.thinkingVideo.muted = true;
-    this.thinkingVideo.playsInline = true;
-    this.thinkingVideo.style.display = 'none';
+    this.thinkingVideo = this.createVideoElement(this.thinkingUrl, false);
 
     // Active video pointer
     this.currentVideo = this.idleVideo1;
@@ -87,14 +89,26 @@ export class AvatarCharacter {
       this.handleVideoEnded('thinking');
     });
 
-    // Autoplay unblock on user click
+    // Autoplay unblock on any mobile touch/scroll/click gesture
     const unblockAutoplay = () => {
-      if (this.currentVideo.paused) {
-        this.currentVideo.play().catch(() => {});
+      [this.idleVideo1, this.idleVideo2, this.thinkingVideo].forEach(v => {
+        v.muted = true;
+        const p = v.play();
+        if (p) {
+          p.then(() => {
+            if (v !== this.currentVideo) v.pause();
+          }).catch(() => {});
+        }
+      });
+      if (!this.isAnimRunning) {
+        this.isAnimRunning = true;
+        this.renderLoop();
       }
     };
-    window.addEventListener('click', unblockAutoplay, { once: true });
-    window.addEventListener('touchstart', unblockAutoplay, { once: true });
+
+    ['click', 'touchstart', 'touchend', 'pointerdown', 'scroll'].forEach(evt => {
+      window.addEventListener(evt, unblockAutoplay, { passive: true });
+    });
 
     // Start initial video playback
     this.idleVideo1.play().then(() => {
@@ -103,7 +117,11 @@ export class AvatarCharacter {
         this.renderLoop();
       }
     }).catch(() => {
-      // Autoplay blocked until user interaction
+      // Always start renderLoop so canvas updates as soon as video loads/plays
+      if (!this.isAnimRunning) {
+        this.isAnimRunning = true;
+        this.renderLoop();
+      }
     });
   }
 
@@ -172,7 +190,10 @@ export class AvatarCharacter {
     if (!this.isAnimRunning) return;
 
     const vid = this.currentVideo;
-    if (this.isVisible && vid && !vid.paused && vid.videoWidth > 0) {
+    if (this.isVisible && vid && vid.videoWidth > 0) {
+      if (vid.paused) {
+        vid.play().catch(() => {});
+      }
       const vWidth = vid.videoWidth;
       const vHeight = vid.videoHeight;
       
