@@ -4,11 +4,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/dev-mode.cjs",
     "dev": "vite --host",
     "server": "node server/server.js",
     "start": "node server/server.js",
     "tunnel": "node server/fixedTunnel.js",
-    "build": "vite build && node -e \"const fs=require('fs'); fs.copyFileSync('dist/index.html', 'index.html'); if (!fs.existsSync('assets')) fs.mkdirSync('assets'); fs.cpSync('dist/assets', 'assets', {recursive: true});\"",
+    "build": "node scripts/pre-build.cjs && vite build && node scripts/post-build.cjs",
     "preview": "vite preview --host"
   },
   "dependencies": {
