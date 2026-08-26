@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = 3001;
-const NGROK_AUTH_TOKEN = '3IRTIJxHoabSL1HAqz6wY1EYbX1_4Emuuq12cYqS9oPQcnw7J';
+const NGROK_AUTH_TOKEN = '3IREZu5K8eKwqhJ3sBiORrzYm1s_26ZJVQ4GhPWYSe98JXyYS';
 
 process.on('uncaughtException', (err) => {
   console.error('[VixerTunnel] Erro não tratado:', err.message);
