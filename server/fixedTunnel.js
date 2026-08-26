@@ -3,7 +3,7 @@ import localtunnel from 'localtunnel';
 const SUBDOMAIN = 'vixer-pc-caio';
 const PORT = 3001;
 const KEEPALIVE_INTERVAL = 30_000;
-const MAX_RETRIES = 8; // Após 8 tentativas (~32s), aceita URL temporária
+const MAX_RETRIES = 15; // Após 15 tentativas (~90s), aceita URL temporária
 
 let activeTunnel = null;
 let keepaliveTimer = null;
@@ -112,13 +112,13 @@ async function startFixedTunnel() {
       setupTunnel(tunnel);
     } else {
       // Tenta de novo
-      console.log(`[VixerTunnel] Subdomínio ocupado. URL temp: ${tunnel.url}. Retentando em 4s...`);
+      console.log(`[VixerTunnel] Subdomínio ocupado. URL temp: ${tunnel.url}. Retentando em 6s...`);
       tunnel.close();
-      setTimeout(startFixedTunnel, 4000);
+      setTimeout(startFixedTunnel, 6000);
     }
   } catch (err) {
     console.error('[VixerTunnel Error]:', err.message);
-    setTimeout(startFixedTunnel, 4000);
+    setTimeout(startFixedTunnel, 6000);
   }
 }
 
