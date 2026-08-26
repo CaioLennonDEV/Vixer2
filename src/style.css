@@ -912,7 +912,7 @@ html, body {
 .avatar-widget.visible-avatar {
   transform: translateY(360px) !important;
   opacity: 1 !important;
-  pointer-events: auto !important;
+  pointer-events: none !important;
 }
 
 .avatar-widget.active-presenter {
