@@ -1,4 +1,4 @@
-import ngrok from 'ngrok';
+import ngrok from '@ngrok/ngrok';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -16,10 +16,11 @@ process.on('uncaughtException', (err) => {
 async function startNgrokTunnel() {
   console.log(`[VixerTunnel] Iniciando Ngrok na porta ${PORT}...`);
   try {
-    const url = await ngrok.connect({
-      port: PORT,
+    const listener = await ngrok.forward({
+      addr: PORT,
       authtoken: NGROK_AUTH_TOKEN
     });
+    const url = listener.url();
 
     console.log(`\n======================================================`);
     console.log(`✨ TÚNEL NGROK ATIVO (100% ESTÁVEL):`);
