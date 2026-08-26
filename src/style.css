@@ -68,12 +68,14 @@ html, body {
 
 /* MULTIVIX NAVBAR */
 .multivix-navbar {
-  height: 58px;
+  height: calc(58px + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   background-color: var(--multivix-red);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1rem;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
   z-index: 100;
   flex-shrink: 0;
@@ -676,7 +678,7 @@ html, body {
 
 /* Input & Active PDF Chips Container */
 .chat-input-wrapper {
-  padding: 0.85rem 1.25rem 1.25rem;
+  padding: 0.85rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
   max-width: 760px;
   width: 100%;
   margin: 0 auto;
