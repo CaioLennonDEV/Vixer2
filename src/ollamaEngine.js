@@ -7,7 +7,7 @@
 export const DEFAULT_OLLAMA_MODEL = '4skl/gemma4-e2b-mtp:latest';
 
 // Configuração de URL remota da API EXCLUSIVA
-const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || 'https://vixer-pc-caio.loca.lt').replace(/\/$/, '');
+const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || 'https://demeanor-unlocked-kilobyte.ngrok-free.dev').replace(/\/$/, '');
 
 function getOllamaEndpoints() {
   return [CONFIGURED_REMOTE_URL];

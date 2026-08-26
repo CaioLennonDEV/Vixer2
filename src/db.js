@@ -1,6 +1,6 @@
 import { generateCourseSystemPrompt } from './coursesData.js';
 
-const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || 'https://vixer-pc-caio.loca.lt').replace(/\/$/, '');
+const CONFIGURED_REMOTE_URL = (import.meta.env.VITE_OLLAMA_API_URL || localStorage.getItem('vixer_remote_api_url') || 'https://demeanor-unlocked-kilobyte.ngrok-free.dev').replace(/\/$/, '');
 
 function getApiBaseUrl() {
   const remoteUrl = localStorage.getItem('vixer_remote_api_url') || CONFIGURED_REMOTE_URL;
